@@ -1,0 +1,60 @@
+This brief document will guide you through the installation process of ccnSim-v0.4.
+
+
+Requirements
+------------
+
+- Omnet++ (>= 4.1)
+It can be downloaded from "http://www.omnetpp.org", and installed following its 
+installation instructions. 
+
+- Boost Libraries
+They can be installed either using the standard packet manager of your distribution
+(e.g., apt-get install, yum install, port install, etc.), or downloading them from 
+"http://www.boost.org/" and following instructions therein.
+
+
+Installation
+------------
+
+In order to install ccnSim-v4.0, it is necessary to patch Omnet++ before. 
+ccnSim-v4.0 comes with two different set of patches, each correspondent to
+the installed version on Omnet++. 
+
+Please follow the instructions above, which suppose the Omnet++ has been correctly
+installed under the $OMNET_DIR, and that ccnSim-v4.0 has been correctly copied and 
+decompressed in the $CCNSIM_DIR folder.
+
+Issue to following command from a terminal according to the installed version of Omnet++:
+
+- Omnetpp - v4.x
+
+     cd $CCNSIM_DIR
+     cp ./patch/omnet-4x/ctopology.h $OMNET_DIR/include/
+     cp ./patch/omnet-4x/ctopology.cc $OMNET_DIR/src/sim
+     cd $OMNET_DIR && make && cd $CCNSIM_DIR
+     ./scripts/makemake.sh
+     make
+
+- Omnetpp - v5.x
+
+     cd $CCNSIM_DIR
+     cp ./patch/omnet-5x/ctopology.h $OMNET_DIR/include/omnetpp
+     cp ./patch/omnet-5x/ctopology.cc $OMNET_DIR/src/sim
+     cd $OMNET_DIR && make && cd $CCNSIM_DIR
+     ./scripts/makemake.sh
+     make
+
+PLEASE read files "CHANGELOG.txt" and "README.txt" for information about
+what's new inside ccnSim-v.0.4, how to correctly lunch simulations, and how to collect results.  
+
+Although less common w.r.t. its classical use (i.e., simulations launched form the command line),
+ccnSim simulations can also be executed directly from the Omnetpp environment. To do so, 
+Omnetpp need to be instructed to load ccnSim .ned files (it can be done by configuring the NEDPATH environment variable).
+Finally, ccnSim executable (soft-linked in $CCNSIM_DIR) must be added to your path
+(e.g.,  by adding $CCNSIM_DIR to your PATH environment variable): 
+
+     export NEDPATH=$CCNSIM_DIR:.
+     export PATH=$PATH:$CCNSIM_DIR
+     
+You should then be able to run ccnSim simulations from omnetpp environment.

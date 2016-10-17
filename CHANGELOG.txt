@@ -1,0 +1,143 @@
+What's new in v0.4
+
+* Omnetpp-5.0 compatibility
+----------------------------------------------------------------------------
+	- This latest stable version of ccnSim introduces compatibility with omnetpp-5.0.
+	  The code has been refactored in order to preserve also the compatibility with previous versions
+	  of omnetpp (i.e., v4.6).
+	  In order to correctly install ccnSim, patch files must be copied into the main installation folder
+	  of omnetpp (see ccnSim manual or INSTALL.txt for more details). 
+	  To this end, two different patches are available in the "patch/" folder, which must be used according 
+	  to the installed version of omnetpp: "omnetpp-4x" for versions previous than the v5.x, and "omnetpp-5x".
+
+* New User Manual
+----------------------------------------------------------------------------
+	- ccnSim-v4.0 comes with a new User Manual (available in "doc/" folder) which covers all the novelties introduced since the previous alpha-versions,
+	  both with explanations and with simple use case.
+	  In particular, topics like downscaled TTL-based simulations (known as ModelGraft), a new sampling method, 
+	  new meta-caching algorithms and content generations models, as well as new scenarios are well developed. 
+	  In addition, new installation and simulation scripts are described.
+
+* New scripts for ModelGraft sensitivity analysis
+----------------------------------------------------------------------------	  
+	- New scripts reproducing all the experiments executed in the technical report 
+	  ("http://www.enst.fr/~drossi/paper/ModelGraft.pdf") to test ModelGraft sensitivity against input
+	  parameters are available in "ModelGraft-Sensitivity-Scripts/" folder.
+
+* New Tc files in "Tc_Values" folder
+----------------------------------------------------------------------------	
+
+* Minor fixes
+----------------------------------------------------------------------------	  
+
+
+What's new in v0.4-Alpha2
+
+* BUG fixes 
+----------------------
+	- "ttl_cache.cc" and "ttl_name_cache.cc": fixed ttl cache lookup and erasure in TTL_CHECK and TWO_TTL_CHECK
+	  due to segfault error. The error showed up only with gcc versions 5.2 and 5.3, while it was silently 
+	  ignored by previous versions (gcc v4.7 and v.4.8). This bug fix avoids the segfault error.  
+	  (thanks to Céline Comte, Anatolle Denis, and Mohammed Hawari.)
+
+	- "ccn_interest.h" and "ccn_data.h": fixed dup() function due to problems with GUI
+	  (thanks to César A. Bernardini).
+
+	- TTL-based simulation: hard-coded limit on the downscaled value Delta; the target cache C' 
+	  is required to be C'=C/Delta >= 10. Smaller values may generate instability in the 
+	  measurement phase of the consistency check, possibly causing the divergence of the 
+	  controller action and of the whole TTL-based simulation. 
+
+
+
+
+What's new in v0.4-Alpha
+
+* TTL-based simulations
+----------------------------------------------------------------------------
+
+ccnSim-0.4-Alpha pushes forward the limits of simulation scalability by implementing 
+an improved version of the idea proposed in: 
+
+	M. Tortelli, D. Rossi, E. Leonardi, ``Model-Graft: Accurate, Scalable 
+	and Flexible Analysis of Cache Networks,'' TR - Telecom ParisTech, 2015
+
+The aim is to simulate large networks through their scaled-down version, in which
+TTL caches are used. 
+If (M) is the catalog cardinality, (C) the cache size, and (R) the number of simulated 
+requests inside the initial scenario, and (Delta) is the downscaling factor,
+then (M' = M / Delta) and (R' = R / Delta) will be the equivalent in the downscaled
+scenario. 
+The parameter of each TTL cache (i.e., the time after which a content is discarded, 
+provided no hit events have happened in the meantime) is set according to the
+respective "Characteristic Time" (Tc) of the equivalent cache (regardless of the 
+metacaching algorithm), which is evaluated either through an optimized analytical 
+solver included inside the simulator, or through the classical event-driven 
+simulation (ED-Sim). 
+The strength of the current implementation is that TTL-based scenarios can be 
+simulated regardless of their complexity; that is, if the scenario is either too
+complex or too big (catalog, nodes, etc) to be solved with the analytical model 
+solver or with the ED-sim approach (thus not having exact estimates of the Tc values 
+that should be provided to the TTL-scenario), users can provide rough estimates
+of Tc values, for example obtained from a much simpler scenario, that will be automatically 
+corrected throughout the simulation using a feedback loop, thus converging
+to the right Tcs and to the right dynamics of the downscaled scenario. 
+
+
+* Optimized model solver
+----------------------------------------------------------------------------
+
+ccnSim 0.4 comes with an out-of-the-box model solver based on:
+
+	V. Martina, M. Garetto, and E. Leonardi, A unified approach to the performance analysis 
+	of caching systems. in Proc. of IEEE INFOCOM 2014.
+
+Complex network can be efficiently analyzed through this analytical model. 
+So far, supported replacement strategies (RS), meta-caching algorithms (MC) and 
+forwarding strategies (FS) are:
+- RS: LRU;
+- MC: LCE, FIXp;
+- FS: SP, NRR.
+	
+
+* Zipf Rejection Inversion Sampling
+----------------------------------------------------------------------------
+
+This method allows to produce random samples following a Zipf's distribution without
+storing the CDF vector. As a consequence, ccnSim 0.4 dramatically reduces its
+memory requirements, not only when simulating TTL-based scenarios, but also for
+classical ED-sim approaches.  
+
+
+* Client and Content Distribution characterization
+----------------------------------------------------------------------------
+
+Users can chose between:
+- Independent Request Model (IRM): it is the classic approach where requests are generated 
+		following a Poisson process of mean rate equal to Lambda.
+- ShotNoise: it reproduces the Shot Noise model proposed in:
+	 
+	 Traverso et al., Unravelling the Impact of Temporal and Geographical Locality in Content 
+	 Caching Systems. IEEE Transactions on Multimedia 17(10): 1839-1854 (2015).
+
+	 	where the temporal locality of requests is taken into account through an ON-OFF
+	 	process that models the request patterns of different classes of contents. 
+
+
+* 2-LRU metacaching implementation.
+----------------------------------------------------------------------------
+
+ccnSim-0.4-Alpha comes with an implementation of a new metacaching policy: 2-LRU.
+It is a caching policy where an additional cache (i.e., Name Cache) is put in front 
+of the main one in order to store the names of the received content requests.
+If the lookup inside the Name Cache gives a positive result, the fetched content 
+will be store inside the main cache; otherwise, only the name of the requested
+content will be stored inside the name cache, without caching the retrieved content. 
+This technique avoids the classical cache pollution associated to other metacaching
+strategies like Leave Copy Everywhere (LCE).
+		
+
+
+
+
+
