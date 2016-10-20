@@ -35,6 +35,7 @@
 #include "ccnsim.h"
 #include "content_distribution.h"
 #include "zipf.h"
+#include "zipf_sampled.h"
 #include <boost/dynamic_bitset.hpp>
 #include <boost/tokenizer.hpp>
 
