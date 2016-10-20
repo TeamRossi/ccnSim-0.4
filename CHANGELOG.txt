@@ -18,11 +18,8 @@ What's new in v0.4
 	  new meta-caching algorithms and content generations models, as well as new scenarios are well developed. 
 	  In addition, new installation and simulation scripts are described.
 
-* New scripts for ModelGraft sensitivity analysis
-----------------------------------------------------------------------------	  
-	- New scripts reproducing all the experiments executed in the technical report 
-	  ("http://www.enst.fr/~drossi/paper/ModelGraft.pdf") to test ModelGraft sensitivity against input
-	  parameters are available in "ModelGraft-Sensitivity-Scripts/" folder.
+* New scripts for ModelGraft sensitivity analysis available on ccnSim website
+------------------------------------------------------------------------------	  
 
 * New Tc files in "Tc_Values" folder
 ----------------------------------------------------------------------------	
