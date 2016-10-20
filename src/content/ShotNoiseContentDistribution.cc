@@ -37,7 +37,8 @@
 
 Register_Class(ShotNoiseContentDistribution);
 
-vector<zipf_distribution*> ShotNoiseContentDistribution::zipfClasses;
+//vector<zipf_distribution*> ShotNoiseContentDistribution::zipfClasses;
+vector<zipf_sampled*> ShotNoiseContentDistribution::zipfClasses;
 
 void ShotNoiseContentDistribution::initialize()
 {
