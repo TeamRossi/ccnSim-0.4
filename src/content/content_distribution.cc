@@ -99,6 +99,8 @@ void content_distribution::initialize()
     	else		// The SNM is simulated.
     	{
     		cardF = pClass2Module->totalContents;
+    		newCardF = cardF;
+		cout << "ShotNoise CARDINALITY: " << cardF;
     		perfile_bulk = cardF;  		// In case the Shot Noise Model is simulated, we have to gather statistics
     									// for all the content in the catalog (a clear correspondence with the
     									// IRM model with a single big catalog is still missing).
