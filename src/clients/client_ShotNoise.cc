@@ -192,7 +192,8 @@ void client_ShotNoise::handleMessage(cMessage *in)
 void client_ShotNoise::request_file(int cNum)
 {
 	// Extract a 'local' content ID from the range associated to class 'cNum'.
-	name_t nameLocal = snPointer->zipfClasses.operator [](cNum-1)->value(dblrand());
+	//name_t nameLocal = snPointer->zipfClasses.operator [](cNum-1)->value(dblrand());
+	name_t nameLocal = snPointer->zipfClasses.operator [](cNum-1)->sample();
 
 	// Obtaining the 'global' content ID by adding the lower bound ID of class 'cNum'.
 	name_t nameGlobal = snPointer->classInfo->operator [](cNum-1).mostPopular - 1  + nameLocal;

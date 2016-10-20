@@ -224,8 +224,17 @@ void ShotNoiseContentDistribution::initialize_contents()
 	// Initialize the structure containing the Zipf distributions for all the classes.
 	for(int k=0; k<numOfClasses; k++)
 	{
-		zipf_distribution* tempZipf = new zipf_distribution(classInfo->operator [](k).classAlpha, 0, classInfo->operator [](k).numContents, 1, k+1);
-		tempZipf->zipf_initialize();
+		//zipf_distribution* tempZipf = new zipf_distribution(classInfo->operator [](k).classAlpha, 0, classInfo->operator [](k).numContents, 1, k+1);
+		/* zipf_sampled init: new zipf_sampled(a,b,c,d)
+		 * where:
+		 * 	a = number of contents in k-th class;
+		 * 	b = zipf's exponent of k-th class;
+		 * 	c = aggregate rate of that class (not actually used);
+		 * 	d = downscaling factor for k-th class (default = 1).
+		 */
+		zipf_sampled* tempZipf = new zipf_sampled(classInfo->operator [](k).numContents, classInfo->operator [](k).classAlpha, classInfo->operator [](k).lambdaClass, 1);  // Zipf with rejection-inversion sampling
+		//tempZipf->zipf_initialize();
+		tempZipf->zipf_sampled_initialize();
 		zipfClasses.push_back(tempZipf);
 		//cout << "90th percentile of class " << k+1 << ":\t" << zipfClasses[k]->value(0.9) << endl;
 	}

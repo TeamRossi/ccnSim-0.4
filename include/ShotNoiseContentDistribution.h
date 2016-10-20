@@ -86,7 +86,8 @@ class ShotNoiseContentDistribution : public content_distribution{
 		int numClients = 0;						// Number of simulated clients in the network.
 		bool shotNoiseActive = false; 			// Flag indicating if the shot noise model is active.
 
-		static vector<zipf_distribution*> zipfClasses;   // Structure containing the popularity distributions of each class.
+		//static vector<zipf_distribution*> zipfClasses;   // Structure containing the popularity distributions of each class.
+		static vector<zipf_sampled*> zipfClasses;   // Structure containing the popularity distributions of each class.
 
 //		#ifdef SEVERE_DEBUG
 //		virtual bool isInitialized();
