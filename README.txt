@@ -62,12 +62,6 @@ An example command that can be used to execute this kind of simulations could be
 which executes a simulation with a ShotNoise client and a ShotNoise content distribution, considering LRU caches, 1e7 total contents (i.e., the some of 
 all the cardinalities present in the example file), and a Toff = 6.
 
-!! REMARK: please note that to execute ShotNoise simulations you should uncomment the following line in the ED_TTL-omnetpp.ini:
-
-##**.content_distribution_type = "${contDistrType = IRM }" --> **.content_distribution_type = "${contDistrType = IRM }"
-
-For simulations with IRM, instead, this line must be left commented.
-
 
 ----- MORE DETAILS -----
  For more details about the output files, please refer to the ccnSim manual.
