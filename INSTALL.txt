@@ -21,7 +21,7 @@ In order to install ccnSim-v4.0, it is necessary to patch Omnet++ before.
 ccnSim-v4.0 comes with two different set of patches, each correspondent to
 the installed version on Omnet++. 
 
-Please follow the instructions above, which suppose the Omnet++ has been correctly
+Please follow the instructions below, which suppose the Omnet++ has been correctly
 installed under the $OMNET_DIR, and that ccnSim-v4.0 has been correctly copied and 
 decompressed in the $CCNSIM_DIR folder.
 
