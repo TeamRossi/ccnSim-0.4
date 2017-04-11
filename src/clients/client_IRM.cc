@@ -76,7 +76,7 @@ void client_IRM::initialize()
 			newCard = round(M*(1./(double)down));    	// The new downscaled cardinality (which equals the number of metacontents/bins)
 			cout << " ------- NewCard from Client_IRM:\t" << newCard << " -------" << endl;
 
-			alphaVal = content_distribution::zipf->get_alpha();
+			alphaVal = content_distribution::zipf[0]->get_alpha();
 
 			if(down > 1)			// TTL-based scenario (ModelGraft)
 			{
