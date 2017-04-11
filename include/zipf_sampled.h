@@ -82,7 +82,7 @@ class zipf_sampled {
         unsigned long down;							// Downsizing factor;
         unsigned long long newCard;						// Downsized cardinality;
 
-        void zipf_sampled_initialize();
+
 	
 
     public:
@@ -205,6 +205,7 @@ class zipf_sampled {
         unsigned long long get_catalog_card(){return down*newCard;}
         double get_alpha(){return exponent;}
         unsigned long long get_numElements(){return numberOfElements;}
+        void zipf_sampled_initialize();
 };
 
 #endif
