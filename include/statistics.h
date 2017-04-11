@@ -67,7 +67,7 @@ class statistics : public cSimpleModule{
 
 		void checkStability();
 
-		int downsize;
+		long long int downsize;
 
 		void cacheFillModel_Scalable_Approx(const char*);
 		void cacheFillModel_Scalable_Approx_NRR(const char*);

@@ -105,8 +105,9 @@ void statistics::initialize(int stage)
 		string fillMode = par("fill_mode");			// Naive vs Model.
 
 		// Downsizing factor. In case of ED-SIM: downsize = 1.
-		downsize = par("downsize");
-		cout << "*** DOWNSIZE VALUE: " << downsize << endl;
+		long unsigned int downsize_temp = par("downsize");
+		downsize = (long long int)downsize_temp;
+		cout << "*** DOWNSIZE VALUE from Statistics: " << downsize << endl;
 
 		partial_n = par("partial_n");	// Number of nodes whose state will be checked.
 		variance_threshold = par("variance_threshold");
@@ -305,7 +306,7 @@ double statistics::calculate_phit_neigh(int node_ID, int cont_ID, float **ratePr
 		if(clientVect[node_ID])
 		{
 			num = (double)(1.0/(double)pow(cont_ID+1,alphaExp));
-			lambda_ex_cont_ID = (double)(num*content_distribution::zipf->get_normalization_constant())*(lambdaVal);
+			lambda_ex_cont_ID = (double)(num*content_distribution::zipf[0]->get_normalization_constant())*(lambdaVal);
 			probNorm += lambda_ex_cont_ID;      // It will be added to the sum of the incoming miss streams.
 		}
 
@@ -453,11 +454,11 @@ void statistics::cacheFillNaive()
 	cout << "Filling Caches with Naive method...\n" << endl;
 
 	int N = num_nodes;									   			// Number of nodes.
-	uint32_t M = content_distribution::zipf->get_catalog_card();		// Number of contents.
+	uint32_t M = content_distribution::zipf[0]->get_catalog_card();		// Number of contents.
 	uint32_t cSize_targ = (double)caches[0]->get_size();
 
-	double alphaVal = content_distribution::zipf->get_alpha();
-	double normConstant = content_distribution::zipf->get_normalization_constant();  // Zipf's normalization constant.
+	double alphaVal = content_distribution::zipf[0]->get_alpha();
+	double normConstant = content_distribution::zipf[0]->get_normalization_constant();  // Zipf's normalization constant.
 
 	double *pZipf = new double[M];
 	double num;
@@ -545,15 +546,15 @@ void statistics::cacheFillModel_Scalable_Approx(const char* phase)
 	chrono::high_resolution_clock::time_point tEndAfterFailure;
 	if(strcmp(phase,"init")!=0)
 		tStartAfterFailure = chrono::high_resolution_clock::now();
-	long M = (long)content_distribution::zipf->get_catalog_card();		// Catalog cardinality.
+	long M = (long)content_distribution::zipf[0]->get_catalog_card();		// Catalog cardinality.
 	int N = num_nodes;												// Number of nodes.
 	double Lambda = clients[0]->getLambda();						// Aggregate lambda of exogenous requests.
 	uint32_t cSize_targ = (double)caches[0]->get_size();			// Target Cache size.
 
 	cout << "Model CACHE SIZE = " << cSize_targ << endl;
 
-	double alphaVal = content_distribution::zipf->get_alpha();
-	double normConstant = content_distribution::zipf->get_normalization_constant();  // Zipf's normalization constant.
+	double alphaVal = content_distribution::zipf[0]->get_alpha();
+	double normConstant = content_distribution::zipf[0]->get_normalization_constant();  // Zipf's normalization constant.
 
 	string forwStr = caches[0]->getParentModule()->par("FS");
 	cout << "*** Model Forwarding Strategy : " << forwStr << " ***" << endl;
@@ -1297,7 +1298,7 @@ double statistics::calculate_phit_neigh_scalable(int node_ID, int cont_ID, float
 		if(clientVect[node_ID])
 		{
 			num = (double)(1.0/(double)pow(cont_ID+1,alphaExp));
-			lambda_ex_cont_ID = (double)(num*content_distribution::zipf->get_normalization_constant())*(lambdaVal);
+			lambda_ex_cont_ID = (double)(num*content_distribution::zipf[0]->get_normalization_constant())*(lambdaVal);
 			probNorm += lambda_ex_cont_ID;      // It will be added to the sum of the incoming miss streams.
 		}
 
@@ -1434,15 +1435,15 @@ void statistics::cacheFillModel_Scalable_Approx_NRR(const char* phase)
 	chrono::high_resolution_clock::time_point tEndAfterFailure;
 	if(strcmp(phase,"init")!=0)
 		tStartAfterFailure = chrono::high_resolution_clock::now();
-	long M = (long)content_distribution::zipf->get_catalog_card();		// Catalog cardinality.
+	long M = (long)content_distribution::zipf[0]->get_catalog_card();		// Catalog cardinality.
 	int N = num_nodes;												// Number of nodes.
 	double Lambda = clients[0]->getLambda();						// Aggregate lambda of exogenous requests.
 	uint32_t cSize_targ = (double)caches[0]->get_size();			// Target Cache size.
 
 	cout << "Model CACHE SIZE = " << cSize_targ << endl;
 
-	double alphaVal = content_distribution::zipf->get_alpha();
-	double normConstant = content_distribution::zipf->get_normalization_constant();  // Zipf's normalization constant.
+	double alphaVal = content_distribution::zipf[0]->get_alpha();
+	double normConstant = content_distribution::zipf[0]->get_normalization_constant();  // Zipf's normalization constant.
 
 	string forwStr = caches[0]->getParentModule()->par("FS");
 	cout << "*** Model Forwarding Strategy : " << forwStr << " ***" << endl;
