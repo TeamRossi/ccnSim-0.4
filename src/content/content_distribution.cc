@@ -42,7 +42,7 @@ Register_Class(content_distribution);
 
 
 vector<file> content_distribution::catalog;
-zipf_sampled*  content_distribution::zipf;
+vector<zipf_sampled*>  content_distribution::zipf;
 
 name_t  content_distribution::stabilization_bulk = 0;
 name_t  content_distribution::perfile_bulk = 0;
@@ -59,7 +59,6 @@ void content_distribution::initialize()
 {
 	cout << "CONTENT DISTRIBUTION" << endl;
 
-    //double coff = par("cut_off");
 
     nodes = getAncestorPar("n");
     num_repos = getAncestorPar("num_repos"); // Number of repositories (specifically ccn_node(s) which have a repository connected to them)
@@ -81,26 +80,30 @@ void content_distribution::initialize()
     	{
     		// Take parameters from the .ini file
     		alpha = par("alpha");		// Zipf's exponent for the whole catalog.
-    		cardF = par("objects"); 	// Total number of files within the system.
 
-    		// Retrieve the downsizing factor in order to compute the new cardinality
+    		unsigned long cardF_temp = par("objects");	// Original cardinality
+    		cardF = (unsigned long long)cardF_temp;
+
+    		// Retrieve the downscaling factor in order to compute the new cardinality
     		cModule* pSubModStat = getParentModule()->getSubmodule("statistics");
-    		int down = pSubModStat->par("downsize");
+    		statistics* pClassStat = dynamic_cast<statistics*>(pSubModStat);
+
+    		unsigned long down = pClassStat->par("downsize");
     		double lambda = pSubModStat->par("lambda");
 
     		newCardF = round(cardF*(1./(double)down));
 
-    		cout << " CONTENT DISTRIBUTION NEW CARD F = " << newCardF << endl;
+    		cout << " DOWNSCALED CARDINALITY from ContentDistribution = " << newCardF << endl;
 
-    		//zipf = zipf_sampled(newCardF,alpha,lambda,down);  // Zipf with rejection-inversion sampling
-    		zipf = new zipf_sampled(newCardF,alpha,lambda,down);  // Zipf with rejection-inversion sampling
+    		zipf.resize(1);
+    		zipf[0] = new zipf_sampled((unsigned long long)newCardF,alpha,lambda,down);  // Zipf with rejection-inversion sampling
 
     	}
     	else		// The SNM is simulated.
     	{
     		cardF = pClass2Module->totalContents;
     		newCardF = cardF;
-		cout << "ShotNoise CARDINALITY: " << cardF;
+    		cout << "ShotNoise CARDINALITY: " << cardF;
     		perfile_bulk = cardF;  		// In case the Shot Noise Model is simulated, we have to gather statistics
     									// for all the content in the catalog (a clear correspondence with the
     									// IRM model with a single big catalog is still missing).
@@ -119,7 +122,7 @@ void content_distribution::initialize()
 	*(content_distribution::total_replicas_p) = 0;
 
 
-    //catalog.resize(cardF+1); 	// Initialize content catalog.
+
     catalog.resize(newCardF+1); 	// Initialize content catalog.
 
 

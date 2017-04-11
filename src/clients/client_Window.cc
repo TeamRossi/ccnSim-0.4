@@ -180,7 +180,7 @@ void client_Window::handleMessage(cMessage *in)
     }
 }
 
-void client_Window::request_file_window(int cNum)
+void client_Window::request_file_window(unsigned long cNum)
 {
 	if (getNodeIndex() == 7)
 	{
@@ -197,7 +197,7 @@ void client_Window::request_file_window(int cNum)
 		while(found)
 		{
 			//name = content_distribution::zipf.value(dblrand());
-			name = content_distribution::zipf->sample();  // With Rejection-inversion sampling
+			name = content_distribution::zipf[0]->sample();  // With Rejection-inversion sampling
 			if(find(reqContents.begin(), reqContents.end(), name) == reqContents.end())
 				found = false;
 		}
@@ -238,10 +238,10 @@ void client_Window::request_file_window(int cNum)
  *		Parameters:
  *		- cNum = class number ('0' for IRM clients).
  */
-void client_Window::request_file(int cNum)
+void client_Window::request_file(unsigned long cNum)
 {
 	//name_t name = content_distribution::zipf.value(dblrand());
-	name_t name = content_distribution::zipf->sample();  // With Rejection-inversion sampling
+	name_t name = content_distribution::zipf[0]->sample();  // With Rejection-inversion sampling
 
 	/*// ****  NB - COMMENT with Rejection-Inversion sampling
 	// Check if the catalog aggregation is active. In this case, request for less popular contents

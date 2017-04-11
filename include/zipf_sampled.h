@@ -70,9 +70,8 @@ using namespace std;
 */
 class zipf_sampled {
 
-    public:
-    //private:
-        int numberOfElements;               // Number of elements.
+    private:
+        unsigned long long numberOfElements;               // Number of elements.
         double exponent;                    // Exponent parameter of the distribution.
         double hIntegralX1;                 // Constant equal to {hIntegral(1.5) - 1}
         double hIntegralNumberOfElements;   // Constant equal to {hIntegral(numberOfElements + 0.5)}.
@@ -80,19 +79,19 @@ class zipf_sampled {
 
         double normalization_constant;      // a.k.a n-th harmonic
         double lambda;
-        int down;							// Downsizing factor;
-        int newCard;						// Downsized cardinality;
+        unsigned long down;							// Downsizing factor;
+        unsigned long long newCard;						// Downsized cardinality;
 
         void zipf_sampled_initialize();
 	
 
-    //public:
+    public:
 
         /** Simple constructor.
          * @param numOfElem number of elements
          * @param alpha exponent parameter of the distribution
          */
-        zipf_sampled(int newCardinality, double alpha, double rate, int downF){
+        zipf_sampled(unsigned long long newCardinality, double alpha, double rate, unsigned long downF){
             exponent = alpha;
             down = downF;
 
@@ -110,12 +109,28 @@ class zipf_sampled {
             newCard = newCardinality;
             lambda = rate;
             hIntegralX1 = hIntegral(1.5) - 1.0;
-            hIntegralNumberOfElements = hIntegral(numberOfElements + 0.5);
+            hIntegralNumberOfElements = hIntegral((double)numberOfElements + 0.5);
             s = 2.0 - hIntegralInverse(hIntegral(2.5) - h(2));
-            normalization_constant = generalizedHarmonic(newCard*down, exponent);
+            /** IMPORTANT **
+             * If the catalog is bigger than 1e9, the computation of the normalization_constant takes a lot of time.
+             * So, if it is the case, we avoid computing that, since it is not used from zipf_sampled, and we set
+             * normalization_constant = 1. This variable is used by the following functions (which are not used in ModelGraftExecution):
+             *  - WeightedContentDistribution.cc
+             *  - cacheFillNaive() in statistics.cc
+             *  - cacheFillModel_Scalable_Approx() in statistics.cc
+             *  - calculate_phit_neigh_scalable() in statistics.cc
+             *  - cacheFillModel_Scalable_Approx_NRR() in statistics.cc
+             *  - calculate_phit_neigh() in statistics.cc
+            */
+            if(newCard*down <= pow(10.0,9.0))
+            	normalization_constant = generalizedHarmonic(newCard*down, exponent);
+            else
+            	normalization_constant = 1;
+
             normalization_constant  = 1.0*(1./normalization_constant);
+
         }
-        zipf_sampled(int numOfElem, double alpha):numberOfElements(numOfElem),exponent(alpha){;};
+        zipf_sampled(unsigned long long numOfElem, double alpha):numberOfElements(numOfElem),exponent(alpha){;};
         zipf_sampled(){zipf_sampled(0,0.0);}
 
 
@@ -126,14 +141,14 @@ class zipf_sampled {
         * @param m Exponent (special case (m = 1) is the harmonic series).
         * @return the n^th generalized harmonic number.
         */
-        double generalizedHarmonic(int content, double alpha);
+        double generalizedHarmonic(unsigned long long content, double alpha);
 
 
         /** Generate one integral number in the range [1, numberOfElements].
          * @param random random generator to use
          * @return generated integral number in the range [1, numberOfElements]
          */
-        int sample();
+        unsigned long long sample();
 
 
         /**
@@ -183,12 +198,13 @@ class zipf_sampled {
          */
         double helper2(double x);
 
-        double probability(int x);
-        double cumulativeProbability(int x);
+        double probability(unsigned long long x);
+        double cumulativeProbability(unsigned long long x);
 
         double get_normalization_constant(){return normalization_constant;}
-        unsigned int get_catalog_card(){return down*newCard;}
+        unsigned long long get_catalog_card(){return down*newCard;}
         double get_alpha(){return exponent;}
+        unsigned long long get_numElements(){return numberOfElements;}
 };
 
 #endif

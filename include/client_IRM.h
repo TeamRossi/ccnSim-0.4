@@ -48,15 +48,16 @@ class client_IRM : public client {
 		virtual void handleMessage(cMessage *);
 		virtual void finish();
 
-		virtual void request_file(unsigned int);		// For IRM clients the class_num will be always '0' by default.
+		virtual void request_file(unsigned long);		// For IRM clients the class_num will be always '0' by default.
 
     private:
-		cMessage *arrival;		// Message to trigger content requests.
-		cMessage *timer;		// Message to trigger timers.
+		cMessage *arrival;			// Message to trigger content requests in ED scenario.
+		cMessage *arrival_ttl;		// Message to trigger content requests in ModelGraft (TTL) scenario.
+		cMessage *timer;			// Message to trigger timers.
 
-		long newCard;
+		unsigned long newCard;
 		double normConstant;
-		int down;
+		unsigned long down;
 		double alphaVal;
 
 		bool onlyModel = false;		// Avoids the initialization of clients requests in case of model execution.

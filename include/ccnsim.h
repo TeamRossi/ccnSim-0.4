@@ -22,7 +22,8 @@
 #define GHOST 5    //ghost interest
 
 //Clients timers
-#define ARRIVAL 300 //arrival of a request 
+#define ARRIVAL 300 //arrival of a request
+#define ARRIVAL_TTL 350 //arrival of a request for the ModelGraft scenario
 #define TIMER 400   //arrival of a request 
 
 //Statistics timers
@@ -58,14 +59,13 @@ typedef unsigned short filesize_t; //representation for the size part within the
 //              content is stored in the i-th repository.
 //</aa>
 typedef unsigned short repo_t; //representation for the repository part within the catalog entry
-//typedef unsigned repo_t; //representation for the repository part within the catalog entry
 
 typedef unsigned long interface_t; //representation of a PIT entry (containing interface information)
 
 //Chunk fields
 typedef unsigned long long  chunk_t; //representation for any chunk flying within the system. It represents a pair [name|number]typedef unsigned int cnumber_t; //represents the number part of the chunk
 typedef unsigned int cnumber_t; //represents the number part of the chunk
-typedef unsigned int name_t; //represents the name part of the chunk
+typedef unsigned long name_t; //represents the name part of the chunk
 
 #include "client.h"
 //Useful data structure. Use that instead of cSimpleModule, when you deal with caches, strategy_layers, and core_layers
@@ -74,7 +74,6 @@ class abstract_node: public cSimpleModule{
         abstract_node():cSimpleModule(){;}
 
         virtual cModule *__find_sibling(std::string mod_name){
-            //return getParentModule()->getModuleByRelativePath(mod_name.c_str());
             return getParentModule()->getModuleByPath(mod_name.c_str());
         }
 
@@ -106,7 +105,6 @@ class abstract_node: public cSimpleModule{
 
         //<aa>  If there is a client attached to the specified interface, it will be returned.
         //              Otherwise a null pointer will be returned
-        //client* __get_attached_client(int interface)
         cSimpleModule* __get_attached_client(int interface)
         {
             client *c = dynamic_cast<client *>
@@ -131,15 +129,15 @@ class abstract_node: public cSimpleModule{
 #define ID_OFFSET        0
 
 //Bitmasks
-#define CHUNK_MSK ( (uint64_t) 0xFFFFFFFF << NUMBER_OFFSET)
-#define ID_MSK    ( (uint64_t) 0xFFFFFFFF << ID_OFFSET )
+#define CHUNK_MSK ( (std::uint64_t) 0xFFFFFFFF << NUMBER_OFFSET)
+#define ID_MSK    ( (std::uint64_t) 0xFFFFFFFF << ID_OFFSET )
 
 //Macros
 #define __chunk(h) ( ( h & CHUNK_MSK )  >> NUMBER_OFFSET )// get chunk number
 #define __id(h)    ( ( h & ID_MSK )     >> ID_OFFSET) //get chunk id
 
-#define __schunk(h,c) h = ( (h & ~CHUNK_MSK) | ( (uint64_t ) c  << NUMBER_OFFSET)) //set chunk number
-#define __sid(h,id)   h = ( (h & ~ ID_MSK)   | ( (uint64_t ) id << ID_OFFSET)) //set chunk id
+#define __schunk(h,c) h = ( (h & ~CHUNK_MSK) | ( (std::uint64_t ) c  << NUMBER_OFFSET)) //set chunk number
+#define __sid(h,id)   h = ( (h & ~ ID_MSK)   | ( (std::uint64_t ) id << ID_OFFSET)) //set chunk id
 
 inline chunk_t next_chunk (chunk_t c){
 
@@ -164,7 +162,6 @@ inline chunk_t next_chunk (chunk_t c){
 #define REPO_OFFSET     0
 
 //Bitmasks
-//#define REPO_MSK (0xFFFF << REPO_OFFSET)
 #define REPO_MSK (0xFFFF << REPO_OFFSET)
 #define SIZE_MSK (0xFFFF << SIZE_OFFSET)
 
@@ -227,7 +224,6 @@ double variance(std::vector<T> v){
                 s += *i;
                 ss += (*i)*(*i);
     }
-    //return (double)(1./N)* (sqrt(N*ss- s*s));
     return (double)(1./(N-1)) * (ss - (s*s)*(1./N));
 }
 #endif

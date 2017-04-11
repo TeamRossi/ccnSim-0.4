@@ -47,9 +47,9 @@ class client_Window : public client {
 		virtual void handleMessage(cMessage *);
 		virtual void finish();
 
-		virtual void request_file(int);		// For IRM clients the class_num will be always '0' by default.
+		virtual void request_file(unsigned long);
 
-		void request_file_window(int);
+		void request_file_window(unsigned long);
 
     private:
 		cMessage *arrival;		// Message to trigger content requests.

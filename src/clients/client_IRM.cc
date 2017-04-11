@@ -67,35 +67,26 @@ void client_IRM::initialize()
 			cModule* pSubModule = getParentModule()->getSubmodule("statistics");
 			statistics* pStatisticsModule = dynamic_cast<statistics*>(pSubModule);
 
-			normConstant = content_distribution::zipf->get_normalization_constant();  // It can be computed here.
-			long M = (long)content_distribution::zipf->get_catalog_card();
+			unsigned long long M = content_distribution::zipf[0]->get_catalog_card();
+			cout << " ------- Original Cardinality from Client_IRM:\t" << M << " -------" << endl;
+
 			down = pStatisticsModule->par("downsize");
-			newCard = round(M*(1./(double)down));    // Equal to the number of bin (or meta-contents)
+			cout << " ------- DOWN from Client_IRM from Par:\t" << down << " -------" << endl;
+
+			newCard = round(M*(1./(double)down));    	// The new downscaled cardinality (which equals the number of metacontents/bins)
+			cout << " ------- NewCard from Client_IRM:\t" << newCard << " -------" << endl;
+
 			alphaVal = content_distribution::zipf->get_alpha();
 
-			unsigned int converted_content;
-			double current_lambda;
-
-
-			if(down > 1)		// TTL-based scenario: schedule newCard content requests
+			if(down > 1)			// TTL-based scenario (ModelGraft)
 			{
-				// Extract a content from each bin (Zipf like) and schedule a request according to its original lambda
-				for(unsigned int k=1; k <= newCard; k++)
-				{
-					unsigned int meta_content = content_distribution::zipf->sample();    // The meta-content is used only to retrieve the current lambda.
-																						// The id of the requested content will be always equal to the bin number.
-					converted_content = (unsigned int)(meta_content + (k-1)*down);
-					current_lambda = (1.0/(double)pow(converted_content,alphaVal))*normConstant*lambda;
-
-					cMessage *arrival_ttl = new cMessage("arrival_ttl", 4001 + k);
-					scheduleAt( simTime() + uniform(0,(double)(1./(double)current_lambda)), arrival_ttl );
-
-					//cout << "* BIN:\t" << k << "\t* META CONTENT:\t" << meta_content << "\t* CONVERTED CONTENT:\t" << converted_content << endl;
-				}
+				// Schedule a ModelGraft request (i.e., arrival_ttl) at lambda/down rate
+				arrival_ttl = new cMessage("arrival_ttl", ARRIVAL_TTL);
+				scheduleAt( simTime() + uniform(0,(double)(1./(double)(lambda/down))), arrival_ttl);
 			}
-			else if(down == 1)		// ED-sim scenario: schedule one request with the overall lambda mean. The Zipf's like selection of the content will be executed later.
+			else if(down == 1)		// ED-sim scenario: schedule one request with the overall lambda mean.
 			{
-				arrival = new cMessage("arrival", ARRIVAL );
+				arrival = new cMessage("arrival", ARRIVAL);
 				scheduleAt( simTime() + uniform(0,1./lambda), arrival);
 			}
 			else
@@ -116,36 +107,28 @@ void client_IRM::finish()
 
 void client_IRM::handleMessage(cMessage *in)
 {
-    if (in->isSelfMessage())	// A self-generated message can be either an 'ARRIVAL' or a 'TIMER'.
+	unsigned long long origContent;
+	unsigned long metaContent;
+
+    if (in->isSelfMessage())	// A self-generated message can be either an 'ARRIVAL', an 'ARRIVAL_TTL', or a 'TIMER'.
     {
 		switch(in->getKind())
 		{
 		case ARRIVAL:
-			request_file(newCard+1);   // Default class num is '0' for client IRM.
+			request_file(newCard+1);   // 'newCard+1' is needed to discern between ED and ModelGraft.
 			scheduleAt( simTime() + exponential(1./lambda), arrival );
-			//scheduleAt( simTime() + 1./lambda, arrival);
-			//scheduleAt( simTime() + uniform(0,1./lambda), arrival);
 			break;
-		case TIMER:
-			handle_timers(in);
-			scheduleAt( simTime() + check_time, timer );
-			break;
-		default:
-			// *** NB -- WITH RejInvSampling
-			// Extract the content ID (which corresponds also the the bin number)
-			unsigned int content = (unsigned int) (in->getKind() - 4001);
+		case ARRIVAL_TTL:
+			// Extract a content from the original catalog (i.e., M cardinality) through the inversion rejection sampling
+			origContent = content_distribution::zipf[0]->sample();
 
-			// Extract another content from the same bin in order to change the lambda
-			unsigned int meta_content = content_distribution::zipf->sample();      // The meta-content is used only to retrieve the current lambda.
-																				  // The id of the requested content will be always equal to the bin number.
-			unsigned int converted_content = (unsigned int)(meta_content + (content-1)*down);
-			double current_lambda = (1.0/(double)pow(converted_content,alphaVal))*normConstant*lambda;
+			// Compute the correspondent meta-content to be requested (i.e., newCard cardinality)
+			metaContent = floor(origContent/down) + 1;
 
-			if(content > 0 && content <= newCard)
+			if(metaContent > 0 && metaContent <= newCard)
 			{
-				request_file(content);
-				scheduleAt( simTime() + exponential(1./current_lambda), in);
-				break;
+				request_file(metaContent);
+				scheduleAt( simTime() + exponential(1./(lambda/down)), arrival_ttl);  // Schedule the next request
 			}
 			else
 			{
@@ -153,6 +136,16 @@ void client_IRM::handleMessage(cMessage *in)
 				ermsg<<"ERROR - Client IRM: received wrong self message identifier. Please check";
 				severe_error(__FILE__,__LINE__,ermsg.str().c_str() );
 			}
+			break;
+		case TIMER:
+			handle_timers(in);
+			scheduleAt( simTime() + check_time, timer );
+			break;
+		default:
+			std::stringstream ermsg_a;
+			ermsg_a<<"ERROR - Client IRM: received wrong self message identifier. Please check";
+			severe_error(__FILE__,__LINE__,ermsg_a.str().c_str() );
+			break;
 		}
 		return;
     }
@@ -189,18 +182,18 @@ void client_IRM::handleMessage(cMessage *in)
 
 /*
  *		Generate Interest packets according to an IRM process. Inter-request times are exponentially distributed
- *		with mean = 1/lambda.
+ *		with mean = down/lambda.
  *
  *		Parameters:
- *		- cNum = class number ('0' for IRM clients).
+ *		- nameC = contentID to be requested (if < newCard+1).
  */
-void client_IRM::request_file(unsigned int nameC)
+void client_IRM::request_file(unsigned long nameC)
 {
 	name_t name;
 
 	if(nameC == newCard+1)  // ED-sim
-		name = content_distribution::zipf->sample();	// Zipf with rejection-inversion sampling
-	else					// TTL_based
+		name = content_distribution::zipf[0]->sample();	// Extract a content from the original catalog (rejection-inversion sampling)
+	else					// ModelGraft (TTL_based)
 		name = (name_t) nameC;
 
 	struct download new_download = download (0,simTime() );

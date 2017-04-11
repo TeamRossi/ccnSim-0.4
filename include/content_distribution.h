@@ -34,7 +34,7 @@
 #include "ccnsim.h"
 #include "zipf.h"
 #include "zipf_sampled.h"
-
+#include "statistics.h"
 
 #pragma pack(push)
 #pragma pack(1)
@@ -70,8 +70,8 @@ class content_distribution : public cSimpleModule{
 
 		virtual vector<unsigned short> binary_strings(int,int);
 		int replicas; 	// Number of replicas for each object. If set to -1, the value will be ignored.
-		long cardF;
-		long newCardF; 	// Downsized catalog in case of TTL-based scenario.
+		unsigned long long cardF;
+		unsigned long newCardF; 	// Downsized catalog in case of TTL-based scenario.
 
 
 
@@ -83,8 +83,8 @@ class content_distribution : public cSimpleModule{
 
 
 		static vector<file> catalog;
-		//static zipf_distribution zipf;
-		static zipf_sampled* zipf;
+
+		static vector<zipf_sampled*> zipf;
 
 		static name_t perfile_bulk;			// Content ID after which per file statistics will not be gathered.
 		static name_t stabilization_bulk; 

@@ -42,9 +42,7 @@
 #include "ccnsim.h"
 #include "client.h"
 #include "statistics.h"
-#include <omnetpp.h>
 
-//Register_Class (zipf_sampled);
 
 using namespace std;
 #if OMNETPP_VERSION >= 0x0500
@@ -59,25 +57,21 @@ void zipf_sampled::zipf_sampled_initialize()
     	return;
 }
 
-int zipf_sampled::sample()
+unsigned long long zipf_sampled::sample()
 {
     while(true)
     {
-        //omnetpp::cRNG *rng = omnetpp::getRNG(0);
-	//double u = hIntegralNumberOfElements + dblrand(rng) * (hIntegralX1 - hIntegralNumberOfElements);
-	//double rd = getEnvir()->getRNG(0)->doubleRand();
+    	// Double RNG compatible with both omnet-4x and omnet-5x
+    	double rd;
+    	if(cSimulation::getActiveSimulation()->getContext())
+    		rd = cSimulation::getActiveSimulation()->getContext()->getRNG(0)->doubleRand();
+    	else
+    		rd = cSimulation::getActiveEnvir()->getRNG(0)->doubleRand();
 	
-	// Double RNG compatible with both omnet-4x and omnet-5x
-	double rd;
-	if(cSimulation::getActiveSimulation()->getContext())
-	  rd = cSimulation::getActiveSimulation()->getContext()->getRNG(0)->doubleRand();
-	else
-	  rd = cSimulation::getActiveEnvir()->getRNG(0)->doubleRand();
-	
-	double u = hIntegralNumberOfElements + rd * (hIntegralX1 - hIntegralNumberOfElements);
+    	double u = hIntegralNumberOfElements + rd * (hIntegralX1 - hIntegralNumberOfElements);
         // u is uniformly distributed in (hIntegralX1, hIntegralNumberOfElements]
         double x = hIntegralInverse(u);
-        int k = (int)(x + 0.5);
+        unsigned long long k = (unsigned long long)(x + 0.5);
         // Limit k to the range [1, numberOfElements]
         // (k could be outside due to numerical inaccuracies)
         if (k < 1) {
@@ -184,9 +178,10 @@ double zipf_sampled::helper2(double x)
 }
 
 
-double zipf_sampled::generalizedHarmonic(int n, double m)
+double zipf_sampled::generalizedHarmonic(unsigned long long n_t, double m)
 {
     double value = 0;
+    double n = (double)n_t;
     for (int k = n; k > 0; --k)
     {
         value += 1.0 / pow(k, m);
@@ -195,7 +190,7 @@ double zipf_sampled::generalizedHarmonic(int n, double m)
 }
 
 
-double zipf_sampled::probability(int x)
+double zipf_sampled::probability(unsigned long long x)
 {
     if (x <= 0 || x > numberOfElements)
     {
@@ -207,7 +202,7 @@ double zipf_sampled::probability(int x)
 
 
 
-double zipf_sampled::cumulativeProbability(int x)
+double zipf_sampled::cumulativeProbability(unsigned long long x)
 {
     if (x <= 0)
     {
