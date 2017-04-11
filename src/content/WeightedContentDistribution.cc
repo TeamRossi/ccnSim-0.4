@@ -299,7 +299,7 @@ unsigned short WeightedContentDistribution::choose_repos (int object_index )
 
 	//Update the repo_popularity
 	(*repo_popularity_p)[assigned_repo] += 
-			zipf->get_normalization_constant() / pow(object_index,alpha);
+			zipf[0]->get_normalization_constant() / pow(object_index,alpha);
 
 	return repo_string;
 }
