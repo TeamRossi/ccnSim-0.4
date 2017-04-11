@@ -107,13 +107,13 @@ void  core_layer::initialize()
 
 	// *** Link Load Evaluation ***
 	stable = false;
+	catCard = (long)content_distribution::zipf[0]->get_catalog_card();
 	llEval = par("llEval");
 	if(llEval)
 	{
 		// *** DISABLED
 		//load_check = new cMessage("load_check", LOAD_CHECK);
 
-		catCard = (long)content_distribution::zipf->get_catalog_card();
 		
 		//batchSize = 10;    // packets (disabled if we want synchronized measure for all links)
 		maxInterval = par("maxInterval"); // seconds
