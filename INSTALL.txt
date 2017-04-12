@@ -8,7 +8,8 @@ Requirements
 It can be downloaded from "http://www.omnetpp.org", and installed following related instructions. 
 
 - Boost Libraries
-They can be installed either by using the standard packet manager of your system (e.g., apt-get install, yum install, port install, etc.), or by downloading them from "http://www.boost.org/", and following instructions therein.
+They can be installed either by using the standard packet manager of your system (e.g., apt-get install, yum install, port install, etc.), 
+or by downloading them from "http://www.boost.org/", and following instructions therein.
 
 
 Installation
@@ -17,7 +18,7 @@ Installation
 In order to install ccnSim-v0.4, it is necessary to patch Omnetpp before. 
 ccnSim-v4.0 comes with two different set of patches, each correspondent to the installed version of Omnetpp (e.g., v4.x or v5.x). 
 
-Please follow the instructions below, which suppose that Omnetpp has been correctly installed under the $OMNET_DIR, and that the .tgz file of ccnSim-v0.4 has been correctly downloaded and decompressed in the $CCNSIM_DIR folder.
+Please follow the instructions below, provided that Omnetpp is correctly installed under the $OMNET_DIR, and that the .tgz file of ccnSim-v0.4 has been correctly downloaded and decompressed in the $CCNSIM_DIR folder.
 
 According to Omnetpp version, the respective ccnSim installation commands are:
 
