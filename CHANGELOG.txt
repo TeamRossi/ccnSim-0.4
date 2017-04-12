@@ -69,7 +69,9 @@ an improved version of the idea proposed in:
 	[1] M. Tortelli, D. Rossi, E. Leonardi, ``Model-Graft: Accurate, Scalable 
 	and Flexible Analysis of Cache Networks,'' TR - Telecom ParisTech, 2015
 
-	[2] M. Tortelli, D. Rossi, E. Leonardi, "A Hybrid Methodology for the Performance Evaluation of Internet-scale Cache Networks", Elsevier Computer Networks, Special Issue on Softwarization and Caching in NGN, 2017, DOI: 10.1016/j.comnet.2017.04.006.
+	[2] M. Tortelli, D. Rossi, E. Leonardi, "A Hybrid Methodology for the Performance Evaluation
+	of Internet-scale Cache Networks", Elsevier Computer Networks, Special Issue on Softwarization
+	and Caching in NGN, 2017, DOI: 10.1016/j.comnet.2017.04.006.
 
 The aim is to simulate large networks through their scaled-down version, in which
 TTL caches are used. 
