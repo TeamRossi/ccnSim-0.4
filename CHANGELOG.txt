@@ -24,7 +24,8 @@ What's new in v0.4
 ----------------------------------------------------------------------------
     ccnSim-v4.0 comes with a new User Manual (available in "doc/" folder) which covers all the novelties introduced 
     since the previous Alpha-versions, both with explanations and with simple use case.
-    In particular, topics like downscaled TTL-based simulations (a.k.a. ModelGraft), a new request sampling method, new meta-caching algorithms, content generations models, as well as new scenarios are well developed. 
+    In particular, topics like downscaled TTL-based simulations (a.k.a. ModelGraft), a new request sampling method, 
+    new meta-caching algorithms, content generations models, as well as new scenarios are well developed. 
     In addition, new installation and simulation scripts are described.
 
 * New scripts for ModelGraft sensitivity analysis available on ccnSim website
