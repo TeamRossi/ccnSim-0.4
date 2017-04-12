@@ -14,8 +14,11 @@ What's new in v0.4
 ----------------------------------------------------------------------------
     The new request generation process for TTL downscaled simulations (i.e., ModelGraft simulations)
     steps out of the previous method, based on a preemptive uniform catalog binning [1], and introduces 
-    a new technique entirely based on the use of Inversion Rejection Sampling. In particular, at each request, a content is extracted from the original non-downscaled catalog, and the correspondent 
-    meta-content of the downscaled catalog (which will be effectively requested) is computed a posteriori. This allows to reduce the CPU execution time of the entire simulation, and to further reduce the accuracy loss with respect to event-driven simulation (i.e., under 0.6%).   
+    a new technique entirely based on the use of Inversion Rejection Sampling. In particular, at each request, 
+    a content is extracted from the original non-downscaled catalog, and the correspondent 
+    meta-content of the downscaled catalog (which will be effectively requested) is computed 
+    a posteriori. This allows to reduce the CPU execution time of the entire simulation, and
+    to further reduce the accuracy loss with respect to event-driven simulation (i.e., under 0.6%).   
 
 * New User Manual
 ----------------------------------------------------------------------------
