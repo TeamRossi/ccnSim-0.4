@@ -19,49 +19,48 @@ with the following command:
 
 	./ccnSim -u Cmdenv -f ED_TTL-omnetpp.ini r 0
 
-In this case, the default .ini file ED_TTL-omnetpp.ini (in which each parameter is documented)
-will be consider to execute a sample simulation. In particular, a simple  
-scenario for the sake of illustration.
-Results are produced inside the "results/" folder in the form of .sca files. 
+In this case, the default ED_TTL-omnetpp.ini file will be used to execute a sample simulation. 
+Each parameter in ED_TTL-omnetpp.ini is documented with the aim of fully understanding the feature of the simulator and of the relative simple scenario that is simulated. 
+At the end of the simulation, log files are written inside the "results/" folder, in the form of .sca files. 
 
 
 ----- EXAMPLE SCRIPT -----
- This version of ccnSim provides, also, an example script:
+ ccnSim-v4.0 provides, also, an example script which can be used through the following command:
 
-	runsim_script_ED_TTL.sh {parameters}
+	./runsim_script_ED_TTL.sh {parameters}
 
-used to automatically configure a new .ini file, according to the parameters passed from the command line,
-and to collect Key Performance Indicators (KPIs) at the end of the simulations. 
-If this script is used, final results are produced under "logs/", "results/", and "infoSim/" directories. 
-In particular, a summary of all the collected parameters is produced under "infoSim/ALL_MEASURES_*" file.
-
-!! REMARK: please see the note about the Memory measurement inside the file "runsim_script_ED_TTL.sh".
+This script is meant to automatically configure a new .ini file, according to the parameters passed from the command line, and to collect Key Performance Indicators (KPIs) at the end of the simulations. 
+In particular, log files are produced under "logs/", "results/", and "infoSim/" directories. 
+A summary file containing all the collected KPIs is produced under "infoSim/ALL_MEASURES_*".
 
 
 ----- ADDITIONAL SAMPLE SCENARIOS -----
- Furthermore, other sample scenarios, with the correspondent command line parameters, are provided inside:
+ Furthermore, commands to run additional sample scenarios are provided inside:
 
 	run_ED_TTL_scanarios.sh
 
-Note that TTL-based scenarios require files with Tc values to be present inside the folder "Tc_Values";
-these files can be produced either by simulating the correspondent scenario with the classic event-driven version
-of ccnSim, always using "runsim_script_ED_TTL.sh" (they will be automatically added to the folder),
-or by adding them manually. The rationale is that the first line contains the Tc of Node 0, the second line
-the Tc of Node 1, and so on.
+Note that TTL-based simulations, a.k.a. ModelGraft [1] simulations, require input files containing TTL caches' eviction timers, a.k.a. Tc values, to be present inside the folder "Tc_Values".
+These files can be produced either by simulating the correspondent scenario with the classic event-driven (ED) version of ccnSim using always "runsim_script_ED_TTL.sh" (they will be automatically added to the folder),
+or by creating them manually. 
+The rationale is that the first line contains the Tc of Node 0, the second line the Tc of Node 1, and so on. Even if random values are provided, ModelGraft [1] is able to iteratively correct them, thus converging to a consistent state. Even if the Memory usage of ccnSim-v0.4 is extremely optimized thanks to the use of the Inversion Rejection Sampling technique (see user manual), we suggest performing ED simulations only for small scenarios, i.e., comprising content catalogs with cardinality M < 1e9, owing to CPU and Memory requirements. 
 
 
 ----- SHOT NOISE MODEL -----
- In order to execute your first simulation with the ShotNoise model, an example file is provided as
+ ccnSim-v0.4 comes, also, with an additional model for the generation of content requests with evolving
+popularity, know as Shot Noise Model [2]
 
-	ShotNoiseScenario.txt
+A reference scenario is already included in order to perform simulations using the ShotNoise model: 
 
-An example command that can be used to execute this kind of simulations could be:
+ ./runsim_script_ED_TTL.sh tree 8 1 spr lce lru 1 1e4 1e4 1e7 1e9 20.0 ShotNoise ShotNoiseContentDistribution 6 0 cold naive 0.75 1	
 
-	./runsim_script_ED_TTL.sh tree 8 1 spr lce lru 1 1e4 1e4 1e7 1e9 20.0 ShotNoise ShotNoiseContentDistribution 6 0 cold naive 0.75 1	
-
-which executes a simulation with a ShotNoise client and a ShotNoise content distribution, considering LRU caches, 1e7 total contents (i.e., the some of 
-all the cardinalities present in the example file), and a Toff = 6.
+which is based on the features reported inside the "ShotNoiseScenario.txt" file. 
+The simulated scenarios makes use of a ShotNoise client, a ShotNoise content distribution logic, LRU caches with size C = 1e4, a content catalog with M = 1e7 total contents (i.e., the sum of 
+all the cardinalities present in the ShotNoiseScenario.txt file), and an OFF time of Toff = 6.
 
 
 ----- MORE DETAILS -----
- For more details about the output files, please refer to the ccnSim manual.
+ For more details about the log files, please refer to the ccnSim manual.
+
+----- REFERENCES -----
+[1] M. Tortelli, D. Rossi, E. Leonardi, "A Hybrid Methodology for the Performance Evaluation of Internet-scale Cache Networks", Elsevier Computer Networks, Special Issue on Softwarization and Caching in NGN, 2017, DOI: 10.1016/j.comnet.2017.04.006.
+[2] S. Traverso et al., Unravelling the Impact of Temporal and Geographical Locality in Content Caching Systems. IEEE Transactions on Multimedia 17(10): 1839-1854 (2015)
