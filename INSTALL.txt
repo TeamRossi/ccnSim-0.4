@@ -50,7 +50,8 @@ simulation execution, and results collection.
 
 Although being less common w.r.t. its classical use (i.e., simulations launched form the command line), ccnSim simulations can also 
 be executed directly from the Omnetpp environment. To do so, Omnetpp need to be instructed to load ccnSim .ned files (it can be done 
-by configuring the NEDPATH environment variable). Finally, ccnSim executable (soft-linked in $CCNSIM_DIR) must be added to your path (e.g., by adding $CCNSIM_DIR to your PATH environment variable): 
+by configuring the NEDPATH environment variable). Finally, ccnSim executable (soft-linked in $CCNSIM_DIR) must be added to your path 
+(e.g., by adding $CCNSIM_DIR to your PATH environment variable): 
 
      export NEDPATH=$CCNSIM_DIR:.
      export PATH=$PATH:$CCNSIM_DIR
