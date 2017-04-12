@@ -13,7 +13,7 @@ What's new in v0.4
 * New Request Generation Process for TTL-based downscaled scenarios
 ----------------------------------------------------------------------------
     The new request generation process for TTL downscaled simulations (i.e., ModelGraft simulations)
-    steps out of the previous method, based on a preemptive uniform catalog binning [1], and introduces 
+    steps out of the previous method, based on a preemptive uniform catalog binning [1][2], and introduces 
     a new technique entirely based on the use of Inversion Rejection Sampling. In particular, at each request, 
     a content is extracted from the original non-downscaled catalog, and the correspondent 
     meta-content of the downscaled catalog (which will be effectively requested) is computed 
@@ -66,8 +66,10 @@ What's new in v0.4-Alpha
 ccnSim-0.4-Alpha pushes forward the limits of simulation scalability by implementing 
 an improved version of the idea proposed in: 
 
-	M. Tortelli, D. Rossi, E. Leonardi, ``Model-Graft: Accurate, Scalable 
+	[1] M. Tortelli, D. Rossi, E. Leonardi, ``Model-Graft: Accurate, Scalable 
 	and Flexible Analysis of Cache Networks,'' TR - Telecom ParisTech, 2015
+
+	[2] M. Tortelli, D. Rossi, E. Leonardi, "A Hybrid Methodology for the Performance Evaluation of Internet-scale Cache Networks", Elsevier Computer Networks, Special Issue on Softwarization and Caching in NGN, 2017, DOI: 10.1016/j.comnet.2017.04.006.
 
 The aim is to simulate large networks through their scaled-down version, in which
 TTL caches are used. 
@@ -142,9 +144,3 @@ will be store inside the main cache; otherwise, only the name of the requested
 content will be stored inside the name cache, without caching the retrieved content. 
 This technique avoids the classical cache pollution associated to other metacaching
 strategies like Leave Copy Everywhere (LCE).
-		
-
-
-1] M. Tortelli, D. Rossi, E. Leonardi, "A Hybrid Methodology for the Performance Evaluation of Internet-scale Cache Networks", Elsevier Computer Networks, Special Issue on Softwarization and Caching in NGN, 2017, DOI: 10.1016/j.comnet.2017.04.006.
-
-
