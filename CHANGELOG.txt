@@ -2,24 +2,30 @@ What's new in v0.4
 
 * Omnetpp-5.0 compatibility
 ----------------------------------------------------------------------------
-	- This latest stable version of ccnSim introduces compatibility with omnetpp-5.0.
-	  The code has been refactored in order to preserve also the compatibility with previous versions
-	  of omnetpp (i.e., v4.6).
-	  In order to correctly install ccnSim, patch files must be copied into the main installation folder
-	  of omnetpp (see ccnSim manual or INSTALL.txt for more details). 
-	  To this end, two different patches are available in the "patch/" folder, which must be used according 
-	  to the installed version of omnetpp: "omnetpp-4x" for versions previous than the v5.x, and "omnetpp-5x".
+	This latest stable version of ccnSim introduces compatibility with Omnetpp-5.0.
+    The code has been refactored in order to preserve also the compatibility with previous versions
+    of Omnetpp (i.e., v4.6).
+    In order to correctly install ccnSim, patch files must be copied into the main installation folder
+    of Omnetpp (see ccnSim manual or INSTALL.txt for more details). 
+    To this end, two different patches are available in the "patch/" folder, which must be used  according 
+    to the installed version of Omnetpp: "Omnetpp-4x" for versions previous than the v5.x, and "Omnetpp-5x".
+
+* New Request Generation Process for TTL-based downscaled scenarios
+----------------------------------------------------------------------------
+	The new request generation process for TTL downscaled simulations (i.e., ModelGraft simulations)
+	steps out of the previous method, based on a preemptive uniform catalog binning [1], and introduces 
+	a new technique entirely based on the use of Inversion Rejection Sampling. In particular, at each request, a content is extracted from the original non-downscaled catalog, and the correspondent 
+	meta-content of the downscaled catalog (which will be effectively requested) is computed a posteriori. This allows to reduce the CPU execution time of the entire simulation, and to further reduce the accuracy loss with respect to event-driven simulation (i.e., under 0.6%).   
 
 * New User Manual
 ----------------------------------------------------------------------------
-	- ccnSim-v4.0 comes with a new User Manual (available in "doc/" folder) which covers all the novelties introduced since the previous alpha-versions,
-	  both with explanations and with simple use case.
-	  In particular, topics like downscaled TTL-based simulations (known as ModelGraft), a new sampling method, 
-	  new meta-caching algorithms and content generations models, as well as new scenarios are well developed. 
-	  In addition, new installation and simulation scripts are described.
+	ccnSim-v4.0 comes with a new User Manual (available in "doc/" folder) which covers all the novelties introduced 
+	since the previous Alpha-versions, both with explanations and with simple use case.
+	In particular, topics like downscaled TTL-based simulations (a.k.a. ModelGraft), a new request sampling method, new meta-caching algorithms, content generations models, as well as new scenarios are well developed. 
+	In addition, new installation and simulation scripts are described.
 
 * New scripts for ModelGraft sensitivity analysis available on ccnSim website
-------------------------------------------------------------------------------	  
+-----------------------------------------------------------------------------	  
 
 * New Tc files in "Tc_Values" folder
 ----------------------------------------------------------------------------	
@@ -135,6 +141,6 @@ strategies like Leave Copy Everywhere (LCE).
 		
 
 
-
+1] M. Tortelli, D. Rossi, E. Leonardi, "A Hybrid Methodology for the Performance Evaluation of Internet-scale Cache Networks", Elsevier Computer Networks, Special Issue on Softwarization and Caching in NGN, 2017, DOI: 10.1016/j.comnet.2017.04.006.
 
 
