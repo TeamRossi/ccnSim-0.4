@@ -2,7 +2,7 @@ What's new in v0.4
 
 * Omnetpp-5.0 compatibility
 ----------------------------------------------------------------------------
-	This latest stable version of ccnSim introduces compatibility with Omnetpp-5.0.
+    This latest stable version of ccnSim introduces compatibility with Omnetpp-5.0.
     The code has been refactored in order to preserve also the compatibility with previous versions
     of Omnetpp (i.e., v4.6).
     In order to correctly install ccnSim, patch files must be copied into the main installation folder
