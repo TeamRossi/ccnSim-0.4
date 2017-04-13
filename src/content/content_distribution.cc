@@ -107,6 +107,11 @@ void content_distribution::initialize()
     		perfile_bulk = cardF;  		// In case the Shot Noise Model is simulated, we have to gather statistics
     									// for all the content in the catalog (a clear correspondence with the
     									// IRM model with a single big catalog is still missing).
+
+    		unsigned long card_temp = round(cardF*(1./(double)down));
+    		zipf.resize(1);
+    		zipf[0] = new zipf_sampled((unsigned long long)card_temp,alpha,lambda,down);  // Zipf with rejection-inversion sampling
+
     	}
     }
 
