@@ -68,6 +68,12 @@ void content_distribution::initialize()
     stat_aggr = par("stat_aggr");			 // Percentile for which statistics are gathered.
     replicas = getAncestorPar("replicas");
 
+    alpha = par("alpha");		// Zipf's exponent for the whole catalog.
+
+    cModule* pSubModStat = getParentModule()->getSubmodule("statistics");
+    statistics* pClassStat = dynamic_cast<statistics*>(pSubModStat);
+    unsigned long down;
+    double lambda;
 
     // If the Shot Noise Model is simulated, parameters like 'alpha' and 'cardF' are taken from the configuration
     // file for each class of content. As a consequence, the relative zipf and cdf vectors are initialized by the
@@ -79,17 +85,13 @@ void content_distribution::initialize()
     	if (!pClass2Module)     	// If the SNM is NOT simulated.
     	{
     		// Take parameters from the .ini file
-    		alpha = par("alpha");		// Zipf's exponent for the whole catalog.
 
     		unsigned long cardF_temp = par("objects");	// Original cardinality
     		cardF = (unsigned long long)cardF_temp;
 
     		// Retrieve the downscaling factor in order to compute the new cardinality
-    		cModule* pSubModStat = getParentModule()->getSubmodule("statistics");
-    		statistics* pClassStat = dynamic_cast<statistics*>(pSubModStat);
-
-    		unsigned long down = pClassStat->par("downsize");
-    		double lambda = pSubModStat->par("lambda");
+    		down = pClassStat->par("downsize");
+    		lambda = pSubModStat->par("lambda");
 
     		newCardF = round(cardF*(1./(double)down));
 
@@ -108,9 +110,8 @@ void content_distribution::initialize()
     									// for all the content in the catalog (a clear correspondence with the
     									// IRM model with a single big catalog is still missing).
 
-    		unsigned long card_temp = round(cardF*(1./(double)down));
     		zipf.resize(1);
-    		zipf[0] = new zipf_sampled((unsigned long long)card_temp,alpha,lambda,down);  // Zipf with rejection-inversion sampling
+    		zipf[0] = new zipf_sampled((unsigned long long)newCardF,alpha,lambda,1);  // Zipf with rejection-inversion sampling
 
     	}
     }
