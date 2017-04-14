@@ -39,7 +39,7 @@ Register_Class(ttl_cache);
 
 void ttl_cache::initialize()
 {
-	cout << "-- INITIALIZATION TTL CACHE --" << endl;
+	cout << "-- INITIALIZATION TTL CACHE NODE # " << getParentModule()->getIndex() << ":"<< endl;
 
 	base_cache::initialize();
 
@@ -55,7 +55,8 @@ void ttl_cache::initialize()
     ASSERT2(down <= (cache_size/10), "Downscaling factor too high! The maximum value, in order to avoid measurement instability on the target cache (and consequent convergence problems), should be 'Cache_DIM/10'\n");
 
     target_cache = cache_size * (1./down);
-    cout << "*** TARGET CACHE: " << target_cache << endl;
+    //cout << "*** TARGET CACHE: " << target_cache << endl;
+    cout << "\t\t\t TARGET CACHE: " << target_cache << endl;
     avg_as_prev = 0.0;
     time_extend = SIMTIME_DBL(simTime());
     cycle_avg_meas_time = SIMTIME_DBL(simTime()) - time_extend;
