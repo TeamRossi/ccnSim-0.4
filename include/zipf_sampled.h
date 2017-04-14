@@ -96,7 +96,8 @@ class zipf_sampled {
             down = downF;
 
             if(downF > 1)						// TTl-based scenario
-            	numberOfElements = downF;
+            	//numberOfElements = downF;
+            	numberOfElements = downF*newCardinality;
             else if(downF == 1)					// ED-sim
             	numberOfElements = newCardinality;
             else
