@@ -131,6 +131,7 @@ class statistics : public cSimpleModule{
 		vector< vector <double> > samples;
 		vector<double> events; 	// Takes track of the changes (hit or miss) of each node.
 		vector<bool> stable_nodes;
+		vector<bool> stable_with_traffic_nodes; // Takes track of those stable nodes that have received traffic
 		unordered_map <int, unordered_set <int> > level_union;
 		unordered_map <int, int> level_same;
 

@@ -113,8 +113,8 @@ void statistics::initialize(int stage)
 		variance_threshold = par("variance_threshold");
 
 		// Coefficient of Variation (CV) and Consistency thresholds.
-                cvThr = par("cvThr");
-                consThr = par("consThr");
+        cvThr = par("cvThr");
+        consThr = par("consThr");
 
 		if (partial_n < 0 || partial_n > 1)
 		{
@@ -201,10 +201,12 @@ void statistics::initialize(int stage)
 		samples.resize(num_nodes);
 		events.resize(num_nodes);
 		stable_nodes.resize(num_nodes);
+		stable_with_traffic_nodes.resize(num_nodes);
 		for (int n=0; n < num_nodes; n++)
 		{
 			events[n] = 0;
 			stable_nodes[n] = false;
+			stable_with_traffic_nodes[n] = false;
 		}
 
 
@@ -2378,9 +2380,6 @@ void statistics::handleMessage(cMessage *in)
 
         //if (full >= partial_n || simTime()>=10*8000)
         if (full >= partial_n || simTime()>=10*3600)
-        //if (full >= partial_n)
-        //if (full >= partial_n || simTime()>=1)
-        //if (simTime()>=10*3600)
         {
         	tEndFill = chrono::high_resolution_clock::now();
         	auto duration = chrono::duration_cast<chrono::milliseconds>( tEndFill - tStartCold ).count();
@@ -2419,7 +2418,6 @@ void statistics::handleMessage(cMessage *in)
     		if(!stable_nodes[i])
     		{
     			stable_nodes[i] = stable(i);
-    			//stables += (int) stable(i);
     			stables += (int) stable_nodes[i];
 
     		}
@@ -2440,7 +2438,7 @@ void statistics::handleMessage(cMessage *in)
     		int stable_with_traffic = 0;
     		for (int i=0; i < num_nodes; i++)
     		{
-    			if(stable_nodes[i]  &&  cores[i]->interests)
+    			if(stable_nodes[i]  &&  stable_with_traffic_nodes[i])
     			{
     				stable_with_traffic++;
     			}
@@ -2464,7 +2462,10 @@ void statistics::handleMessage(cMessage *in)
 					if(twoLruDecisor)			// 2-LRU-LRU
 						twoLruDecisor->nc_stable = true;
 				}
-				//delete stable_check;
+
+				for(int i=0; i<num_clients; i++)
+					clients[i]->stability = true;
+
 				cout << "*** FULL STABLE ***" << endl;
 
 				// *****  NB  *** Insert for the link failure scenario
@@ -2513,7 +2514,6 @@ void statistics::handleMessage(cMessage *in)
 
 				for (int n=0; n < num_nodes; n++)
 				{
-					//stable_nodes[n] = false;
 					events[n] = 0;
 				}
     		}
@@ -2579,7 +2579,7 @@ void statistics::handleMessage(cMessage *in)
 
     	    	cout << "CYCLE " << sim_cycles << " -\tNUM of ACTIVE NODES among the PARTIAL_N NODES: " << numActiveNodes << endl;
 
-    	    	if(Sum_avg_as_cur/Sum_target_cache < 0.1 || sim_cycles > 20)
+    	    	if(Sum_avg_as_cur/Sum_target_cache < consThr || sim_cycles > 20)
     	    	{
     	    		cout << " *** SIMULATION ENDED AT CYCLE:\t" << sim_cycles << endl;
     	    		delete in;
@@ -2615,9 +2615,11 @@ void statistics::handleMessage(cMessage *in)
 
    					// Reset the stable nodes
    					for(int i=0; i<num_nodes; i++)
+   					{
    						stable_nodes[i] = false;
+   						stable_with_traffic_nodes[i] = false;
+   					}
 
-   					//scheduleAt(simTime() + time_steady, in);   // Schedule the next end at simTime() + time_steady;
    					scheduleAt(simTime() + ts, stable_check);  // Schedule another stability check.
    				}
    	    	}
@@ -2708,44 +2710,37 @@ bool statistics::stable(int n)
     //	Only hit rates matter.
     if (caches[n]->hit != 0 )
     {
-    	//if((caches[n]->hit + caches[n]->miss) != events[n])		// If something is changed wrt the previous sample
-    	if((caches[n]->decision_yes + caches[n]->hit) != events[n])
-    	//if((caches[n]->decision_yes) != events[n])
+    	if((caches[n]->decision_yes + caches[n]->hit) != events[n])  // If something is changed wrt the previous sample
     	{
     		samples[n].push_back(rate);		// Collect a sample.
-    		//events[n] = caches[n]->hit + caches[n]->miss;
+
+    		if (samples[n].size()==window+1)
+    			samples[n].erase(samples[n].begin()); // we try to maintain constant size while inserting new elements.
+
     		events[n] = caches[n]->decision_yes + caches[n]->hit;
-    		//events[n] = caches[n]->decision_yes;
     	}
     	// else: do not collect the sample
     }
-    //else
-    //	samples[n].push_back(0);
     else
     {
     	if(caches[n]->miss == 0)      	// Inactive node  (we should state it as stable)
     		samples[n].push_back(0);
     	else							// Node which has experienced only miss events so far -> do not collect the sample
     									// we will start only by the first hit.
-    		//events[n] = caches[n]->hit + caches[n]->miss;
     		events[n] = caches[n]->decision_yes + caches[n]->hit;
-    		//events[n] = caches[n]->decision_yes;
     }
 
-    if ( fabs( samples[n].size() - window * 1./ts ) <= 0.001 )	// Calculate the variance each window samples.
+    if ( samples[n].size() == window )	// Calculate the variance each window samples.
 	{
     	var = variance(samples[n]);
     	mean = average(samples[n]);
-    	//cout << "NODE # " << n << " Variance: " << var << endl;
     	cout << "NODE # " << n << " Variance: " << var << " SIM TIME: " << simTime() << endl;
-        //if ( var <= variance_threshold)		// The hit rate is stable.
-    	double cv;
+        double cv;
     	if (mean > 0.1)
-    		cv = 0.005;
+    		cv = cvThr;
     	else
     		cv = 0.1;
     	if ( sqrt(var) <= cv * mean)
-    	//if ( sqrt(var) <= 0.005 * mean)
         {
             stabilization_time = SIMTIME_DBL(simTime());
             stable = true;
@@ -2756,6 +2751,10 @@ bool statistics::stable(int n)
 
             // Set stable flag inside "base_cache"
             caches[n]->stability = true;
+
+            // Check if it is an active node
+            if(cores[n]->interests)
+            	stable_with_traffic_nodes[n]=true;
 
         }
         samples[n].clear();		// Clear the collected samples.

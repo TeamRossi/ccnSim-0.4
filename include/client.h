@@ -97,6 +97,8 @@ class client : public cSimpleModule {
 		double getScheduledReq(int);			// Return the # of scheduled requests for the specified popularity class.
 		double getValidatedReq(int);			// Return the # of validated requests for the specified popularity class.
 
+		bool stability; 		// Flag indicating steady state for the client.
+
 	protected:
 		virtual void initialize();
 		virtual void handleMessage(cMessage *){;};		// It should be implemented by each specialized client.
