@@ -107,7 +107,12 @@ void statistics::initialize(int stage)
 		// Downsizing factor. In case of ED-SIM: downsize = 1.
 		long unsigned int downsize_temp = par("downsize");
 		downsize = (long long int)downsize_temp;
-		cout << "*** DOWNSIZE VALUE from Statistics: " << downsize << endl;
+		unsigned long long M = content_distribution::zipf[0]->get_catalog_card();
+		unsigned long newCard = round(M*(1./(double)downsize));
+
+		cout << "*** ORIGINAL CATALOG (from Statistics module): " << M << endl;
+		cout << "*** DOWNSCALING VALUE (from Statistics module): " << downsize << endl;
+		cout << "*** DOWNSCALED CATALOG (from Statistics module): " << newCard << endl;
 
 		partial_n = par("partial_n");	// Number of nodes whose state will be checked.
 		variance_threshold = par("variance_threshold");

@@ -432,7 +432,7 @@ void base_cache::read_tc_value()
 		fin_tc.close();
 
 		//cout << "NODE # " << getIndex() << " has TC = " << tc_node << " s" << endl;
-		cout << "\t\t\t TC = " << tc_node << " s" << endl;
+		cout << "\t\t TC = " << tc_node << " s" << endl;
 	}
 }
 

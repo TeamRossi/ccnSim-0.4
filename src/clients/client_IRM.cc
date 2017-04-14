@@ -68,13 +68,13 @@ void client_IRM::initialize()
 			statistics* pStatisticsModule = dynamic_cast<statistics*>(pSubModule);
 
 			unsigned long long M = content_distribution::zipf[0]->get_catalog_card();
-			cout << " ------- Original Cardinality from Client_IRM:\t" << M << " -------" << endl;
+			//cout << " ------- Original Cardinality from Client_IRM:\t" << M << " -------" << endl;
 
 			down = pStatisticsModule->par("downsize");
-			cout << " ------- DOWN from Client_IRM from Par:\t" << down << " -------" << endl;
+			//cout << " ------- DOWN from Client_IRM from Par:\t" << down << " -------" << endl;
 
 			newCard = round(M*(1./(double)down));    	// The new downscaled cardinality (which equals the number of metacontents/bins)
-			cout << " ------- NewCard from Client_IRM:\t" << newCard << " -------" << endl;
+			//cout << " ------- NewCard from Client_IRM:\t" << newCard << " -------" << endl;
 
 			alphaVal = content_distribution::zipf[0]->get_alpha();
 

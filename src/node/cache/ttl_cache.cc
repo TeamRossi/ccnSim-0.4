@@ -56,7 +56,7 @@ void ttl_cache::initialize()
 
     target_cache = cache_size * (1./down);
     //cout << "*** TARGET CACHE: " << target_cache << endl;
-    cout << "\t\t\t TARGET CACHE: " << target_cache << endl;
+    cout << "\t\t TARGET CACHE: " << target_cache << endl;
     avg_as_prev = 0.0;
     time_extend = SIMTIME_DBL(simTime());
     cycle_avg_meas_time = SIMTIME_DBL(simTime()) - time_extend;
