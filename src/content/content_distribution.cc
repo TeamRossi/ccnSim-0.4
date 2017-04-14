@@ -71,7 +71,7 @@ void content_distribution::initialize()
     alpha = par("alpha");		// Zipf's exponent for the whole catalog.
 
     cModule* pSubModStat = getParentModule()->getSubmodule("statistics");
-    statistics* pClassStat = dynamic_cast<statistics*>(pSubModStat);
+    //statistics* pClassStat = dynamic_cast<statistics*>(pSubModStat);
     unsigned long down;
     double lambda;
 
@@ -90,7 +90,8 @@ void content_distribution::initialize()
     		cardF = (unsigned long long)cardF_temp;
 
     		// Retrieve the downscaling factor in order to compute the new cardinality
-    		down = pClassStat->par("downsize");
+    		//down = pClassStat->par("downsize");
+    		down = pSubModStat->par("downsize");
     		lambda = pSubModStat->par("lambda");
 
     		newCardF = round(cardF*(1./(double)down));
