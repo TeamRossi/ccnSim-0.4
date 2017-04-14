@@ -41,7 +41,9 @@ A summary file containing all the collected KPIs is produced under "infoSim/ALL_
 
 Note that TTL-based simulations, a.k.a. ModelGraft [1] simulations, require input files containing TTL caches' eviction timers, a.k.a. Tc values, to be present inside the folder "Tc_Values".
 These files can be produced either by simulating the correspondent scenario with the classic event-driven (ED) version of ccnSim using always "runsim_script_ED_TTL.sh" (they will be automatically added to the folder), or by creating them manually. 
-The rationale is that the first line contains the Tc of Node 0, the second line the Tc of Node 1, and so on. Even if random values are provided, ModelGraft [1] is able to iteratively correct them, thus converging to a consistent state. Despite the Memory usage of ccnSim-v0.4 being extremely optimized, thanks to the use of the Inversion Rejection Sampling technique (see user manual), we suggest performing ED simulations only for small scenarios, i.e., comprising content catalogs with cardinality M < 1e9, owing to CPU and Memory requirements. 
+The rationale is that the first line contains the Tc of Node 0, the second line the Tc of Node 1, and so on. Even if random values are provided, ModelGraft [1] is able to iteratively correct them, thus converging to a consistent state. 
+The current v0.4 provides also a random generation of Tc values in the Tc file correspondent to the scenario is not present in the folder. It is, however, a very general heuristic which does not guarantee optimal performance.
+Despite the Memory usage of ccnSim-v0.4 being extremely optimized, thanks to the use of the Inversion Rejection Sampling technique (see user manual), we suggest performing ED simulations only for small scenarios, i.e., comprising content catalogs with cardinality M < 1e9, owing to CPU and Memory requirements. 
 
 
 ----- SHOT NOISE MODEL -----

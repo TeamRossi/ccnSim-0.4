@@ -20,6 +20,13 @@ What's new in v0.4
     a posteriori. This allows to reduce the CPU execution time of the entire simulation, and
     to further reduce the accuracy loss with respect to event-driven simulation (i.e., under 0.6%).   
 
+* Random Generation of Tc values in case of the absence of the requested Tc file
+---------------------------------------------------------------------------------
+	Random Tc values are generated at runtime per each node if the requested Tc file is not present in the 
+	Tc_Values folder. This allows ModelGraft to perform any simulation thanks to its feedback loop which
+	iteratively corrects input Tc values. It is, however, a very general heuristic which does not 
+	guarantee optimal performance.
+
 * New User Manual
 ----------------------------------------------------------------------------
     ccnSim-v4.0 comes with a new User Manual (available in "doc/" folder) which covers all the novelties introduced 
