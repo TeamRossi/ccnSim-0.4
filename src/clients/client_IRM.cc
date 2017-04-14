@@ -125,8 +125,6 @@ void client_IRM::handleMessage(cMessage *in)
 			// Compute the correspondent meta-content to be requested (i.e., newCard cardinality)
 			metaContent = floor(origContent/down) + 1;
 
-			cout << "ARRIVAL TTL --- Request for Content:\t" << metaContent << endl;
-
 			if(metaContent > 0 && metaContent <= newCard)
 			{
 				request_file(metaContent);
@@ -197,8 +195,6 @@ void client_IRM::request_file(unsigned long nameC)
 		name = content_distribution::zipf[0]->sample();	// Extract a content from the original catalog (rejection-inversion sampling)
 	else					// ModelGraft (TTL_based)
 		name = (name_t) nameC;
-
-	cout << "\t\t ---Effectively requested Content:\t" << name << endl;
 
 	struct download new_download = download (0,simTime() );
 	#ifdef SEVERE_DEBUG
