@@ -406,9 +406,15 @@ void base_cache::read_tc_value()
 	fin_tc.open(TC_PATH);
 	if(!fin_tc)
 	{
-		std::cout << "\n TC File does NOT exist!\n";
+		//std::cout << "\n TC File does NOT exist!\n";
+		std::cout << "\n TC File does NOT exist! TC value generated RANDOMLY\n";
 	   	fin_tc.close();
-	   	exit(0);
+	   	//exit(0);
+	   	std::random_device rd;
+	   	std::mt19937 eng(rd()); // seed the generator
+	   	std::uniform_int_distribution<> distr(cache_size/100, cache_size); // define the range
+	   	tc_node = (double)distr(eng);
+	   	cout << "\t TC = " << tc_node << " s" << endl;
 	}
 	else
 	{
@@ -432,7 +438,7 @@ void base_cache::read_tc_value()
 		fin_tc.close();
 
 		//cout << "NODE # " << getIndex() << " has TC = " << tc_node << " s" << endl;
-		cout << "\t\t TC = " << tc_node << " s" << endl;
+		cout << "\t TC = " << tc_node << " s" << endl;
 	}
 }
 
