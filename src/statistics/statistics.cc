@@ -306,8 +306,8 @@ int statistics::numInitStages() const
 }
 
 /*
- * 	Function to handle timers aimed at checking the state of the caches, i.e.,
- * 	when they become full, and when their hit rate remains stable within a certain threshold.
+ * 	Handle timers aimed at checking the state of the simulation, e.g.,
+ * 	full caches, transient state, and simulation end.
  */
 void statistics::handleMessage(cMessage *in)
 {
