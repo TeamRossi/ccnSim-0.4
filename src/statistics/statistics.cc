@@ -300,6 +300,669 @@ void statistics::initialize(int stage)
 }
 
 
+int statistics::numInitStages() const
+{
+	return 2;
+}
+
+/*
+ * 	Function to handle timers aimed at checking the state of the caches, i.e.,
+ * 	when they become full, and when their hit rate remains stable within a certain threshold.
+ */
+void statistics::handleMessage(cMessage *in)
+{
+	int full = 0;
+    int stables = 0;
+    int numActiveNodes = 0;
+
+    switch (in->getKind()){
+    case FULL_CHECK:
+    	for (int i = 0; i < num_nodes;i++)
+    	{
+    		if(cores[i]->interests!=0)
+    			full += (int)caches[i]->full();
+    		else
+    			full += 1; 						// Inactive nodes are considered full for convergence purposes
+    	}
+
+        //if (full >= partial_n || simTime()>=10*8000)
+        if (full >= partial_n || simTime()>=10*3600)
+        {
+        	tEndFill = chrono::high_resolution_clock::now();
+        	auto duration = chrono::duration_cast<chrono::milliseconds>( tEndFill - tStartCold ).count();
+        	cout << "Execution time of the FILL [ms]: " << duration << endl;
+
+        	cout<<"Caches filled at time "<< simTime() <<endl;
+        	scheduleAt(simTime() + ts, stable_check);	// Schedule the 'stable' check.
+        	delete full_check;
+
+        	double phitNode;
+    		double phitTot = 0;
+    		for (int i=0; i < num_nodes; i++)
+    		{
+    			if(caches[i]->hit != 0)
+    			{
+    				phitNode = caches[i]->hit * 1./ ( caches[i]->hit + caches[i]->miss );
+    				phitTot += phitNode;
+    				cout << "Node # " << i << " pHit: " << phitNode << endl;
+    				phitNode = 0;
+    			}
+    			else
+    			{
+    				phitTot += 0;
+    			}
+    		}
+    		cout << "SIMULATION - Total MEAN HIT PROB AFTER CACHE FILL: " << phitTot * 1./(double)num_nodes << endl;
+    		clear_stat();		// Clear the statistics gathered during the transient time.
+        }
+        else
+        	scheduleAt(simTime() + ts, in);		// Reschedule a 'full' check.
+        break;
+
+    case STABLE_CHECK:
+    	for (int i = 0;i<num_nodes;i++)
+    	{
+    		if(!stable_nodes[i])
+    		{
+    			stable_nodes[i] = stable(i);
+    			stables += (int) stable_nodes[i];
+
+    		}
+    		else
+    			stables += 1;
+    	}
+
+    	if ( stables >= partial_n )
+    	{
+    		// Due to the fact that inactive nodes are considered as "stable",
+    		// a further control is needed in order to check if a representative
+    		// parte of the stable nodes (in this case half of them) effectively received traffic.
+    		// This is especially needed for downscaled TTL-based simulations,
+    		// and in particular for those cases where more simulation cycles are needed
+    		// in order to correct the input Tc values. In case the next condition is not verified,
+    		// the simulation continues with the transient state.
+
+    		int stable_with_traffic = 0;
+    		for (int i=0; i < num_nodes; i++)
+    		{
+    			if(stable_nodes[i]  &&  stable_with_traffic_nodes[i])
+    			{
+    				stable_with_traffic++;
+    			}
+    			else
+    			{
+    				stable_nodes[i] = false;
+    				stables--;
+    			}
+    		}
+    		cout << "**##**  ACTIVE NODES BTW STABLES:\t" << stable_with_traffic << endl;
+
+    		if(stable_with_traffic >= floor(partial_n/2))
+    		{
+				for (int i = 0;i<num_nodes;i++)
+				{
+					caches[i]->stability = true;
+
+					// In case of 2-LRU, signal the name cache for stability
+					DecisionPolicy* decisor = caches[i]->get_decisor();
+					Two_Lru* twoLruDecisor = dynamic_cast<Two_Lru *> (decisor);
+					if(twoLruDecisor)			// 2-LRU-LRU
+						twoLruDecisor->nc_stable = true;
+				}
+
+				for(int i=0; i<num_clients; i++)
+					clients[i]->stability = true;
+
+				cout << "*** FULL STABLE ***" << endl;
+
+				// *****  NB  *** Insert for the link failure scenario
+				//if(scheduleEnd)
+				scheduleAt(simTime() + time_steady, end);	// Schedule the end of the simulation according to the steady
+																// time after stabilization.
+				double phitNode;
+				double phitTot = 0;
+				int numActiveNodes = 0;
+				for (int i=0; i < num_nodes; i++)
+				{
+					if(cores[i]->interests != 0)
+					{
+						phitNode = caches[i]->hit * 1./ ( caches[i]->hit + caches[i]->miss );
+						phitTot += phitNode;
+						cout << "Node # " << i << " pHit: " << phitNode << endl;
+						phitNode = 0;
+						numActiveNodes++;
+
+						cores[i]->stable = true;
+
+					}
+					else
+					{
+						phitTot += 0;
+						//numActiveNodes++;
+
+						cores[i]->stable = true;
+					}
+				}
+				cout << "SIMULATION - Total MEAN HIT PROB AFTER STABILIZATION: " << phitTot * 1./(double)numActiveNodes << endl;
+
+				if(!scheduleEnd)
+					cout << "Number of Active Nodes 1: " << numActiveNodes << endl;
+				else
+					cout << "Number of Active Nodes 2: " << numActiveNodes << endl;
+				cout << "SIMULATION - Stabilization reached at: " << simTime() << endl;
+
+				tEndStable = chrono::high_resolution_clock::now();
+
+				// ** Stability time measured since the beginning
+				auto duration = chrono::duration_cast<chrono::milliseconds>( tEndStable - tStartGeneral ).count();
+				cout << "Execution time of the STABILIZATION [ms]: " << duration << endl;
+
+				stability_has_been_reached();
+
+				for (int n=0; n < num_nodes; n++)
+				{
+					events[n] = 0;
+				}
+    		}
+    		else  // Continue the simulation with the transient state (reschedule a 'stable' check)
+    			scheduleAt(simTime() + ts, in);
+    	}
+    	else {
+    		//cout << "NOT STABLE!" << endl;
+    		scheduleAt(simTime() + ts, in);		// Reschedule a 'stable' check.
+    	}
+
+    	break;
+    case END:
+    	tEndGeneral = chrono::high_resolution_clock::now();
+    	auto duration = chrono::duration_cast<chrono::milliseconds>( tEndGeneral - tStartGeneral ).count();
+    	cout << "Execution time of the SIMULATION [ms]: " << duration << endl;
+    	//delete in;
+
+    	// Dynamic evalutaion of Tc in TTL-based scenario
+    	string forwStr = caches[0]->getParentModule()->par("RS");
+		if(forwStr.compare("ttl_cache") == 0)
+		{
+			if(!dynamic_tc)
+			{
+				delete in;
+				endSimulation();
+			}
+			else  // *** DYNAMIC TC ***
+			{
+				// Compare the SUM of the actual cache sizes of each node
+				double Sum_avg_as_cur = 0.0;
+
+    	    	numActiveNodes = 0;
+
+
+    	    	for (int i=0; i < num_nodes; i++)
+    	    	{
+    	    		if(cores[i]->interests != 0)
+    	    		{
+    	    			// For the consistency check on Ck we count only those nodes that have been stated as STABLE
+    	    			// (considering partial_n) and that are active
+    	    			if(stable_nodes[i])
+    	    			{
+    	    				cout << "** Consistency Check on NODE # " << i << endl;
+    	    				numActiveNodes++;
+    	    				Sum_avg_as_cur += abs(dynamic_cast<ttl_cache*>(caches[i])->avg_as_curr - dynamic_cast<ttl_cache*>(caches[i])->target_cache); //SUM of ABS
+    	    			}
+
+   	    				if(abs(dynamic_cast<ttl_cache*>(caches[i])->target_cache - dynamic_cast<ttl_cache*>(caches[i])->avg_as_curr)/dynamic_cast<ttl_cache*>(caches[i])->target_cache < 0.1)
+   	    				{
+   	    					dynamic_cast<ttl_cache*>(caches[i])->change_tc = false;   // Stop tc changing
+   	    				}
+
+    	    		}
+    	    		else
+    	    			dynamic_cast<ttl_cache*>(caches[i])->change_tc = false;   // Do not change Tc for inactive nodes.
+    	    	}
+
+
+
+    	    	// Only active nodes count
+    	    	double Sum_target_cache = dynamic_cast<ttl_cache*>(caches[0])->target_cache * numActiveNodes;
+
+    	    	cout << "CYCLE " << sim_cycles << " -\tNUM of ACTIVE NODES among the PARTIAL_N NODES: " << numActiveNodes << endl;
+
+    	    	if(Sum_avg_as_cur/Sum_target_cache < consThr || sim_cycles > 20)
+    	    	{
+    	    		cout << " *** SIMULATION ENDED AT CYCLE:\t" << sim_cycles << endl;
+    	    		delete in;
+    	    		endSimulation();
+    	    	}
+    			else
+    			{
+    				cout << " *** CONDITION NOT VERIFIED! CONTINUE SIMULATION ***" << endl;
+    				sim_cycles++;
+
+    				for (int i=0; i < num_nodes; i++)
+    				{
+    					cout << "NODE:\t" << i << "\n\tOLD Tc = " << caches[i]->tc_node << "\n";
+    					dynamic_cast<ttl_cache*>(caches[i])->extend_sim();			// Set the new Tc
+    					cout << "\tNEW Tc = " << caches[i]->tc_node << "\n";
+    					cout << "\tOnline Avg Cache Size = " << dynamic_cast<ttl_cache*>(caches[i])->avg_as_curr << "\n";
+    				}
+
+
+    				string decision_policy = caches[0]->par("DS");
+
+    				if (decision_policy.compare("two_ttl")==0)   // Change the Tc of the name cache accordingly
+    				{
+    					for (int i=0; i < num_nodes; i++)
+    					{
+    						Two_TTL* tTTLPointer = dynamic_cast<Two_TTL *> (caches[i]->get_decisor());
+    						tTTLPointer->extend_sim();
+    					}
+    				}
+
+   					// Clear statistics of the current cycle
+   					clear_stat();
+
+   					// Reset the stable nodes
+   					for(int i=0; i<num_nodes; i++)
+   					{
+   						stable_nodes[i] = false;
+   						stable_with_traffic_nodes[i] = false;
+   					}
+
+   					scheduleAt(simTime() + ts, stable_check);  // Schedule another stability check.
+   				}
+   	    	}
+		}
+		else		// NOT TTL-based scenario. Delete msg and end simulation.
+		{
+
+			// *** Link Load Evaluation ***
+			int nextNode;
+			double currentBitPerSec;
+			double currentChLoad;
+			if(cores[0]->llEval)
+			{
+				for(int j=0; j<num_nodes; j++)
+				{
+					if(j==0)
+					{
+						for(int i=0; i < cores[j]->gateSize("face$o") - 1; i++)
+						{
+							nextNode = cores[j]->getParentModule()->gate("face$o",i+1)->getNextGate()->getOwnerModule()->getIndex();
+							if(nextNode == 1)
+							{
+								cout << "CAT CARD from CORE = " << cores[0]->catCard << endl;
+								for(long k=0; k < cores[0]->catCard; k++)
+								{
+									currentBitPerSec = cores[j]->numBits[i][k]/(SIMTIME_DBL(simTime())-stabilization_time);
+									currentChLoad = currentBitPerSec/cores[j]->datarate;
+									cout << "TIER 1 - Content # " << k+1 << "\tLOAD - " << currentChLoad << endl;
+								}
+							}
+						}
+
+					}
+					else if(j==1)
+					{
+						for(int i=0; i < cores[j]->gateSize("face$o") - 1; i++)
+						{
+							nextNode = cores[j]->getParentModule()->gate("face$o",i+1)->getNextGate()->getOwnerModule()->getIndex();
+							if(nextNode == 3)
+							{
+								for(long k=0; k<cores[0]->catCard; k++)
+								{
+									currentBitPerSec = cores[j]->numBits[i][k]/(SIMTIME_DBL(simTime())-stabilization_time);
+									currentChLoad = currentBitPerSec/cores[j]->datarate;
+									cout << "TIER 2 - Content # " << k+1 << "\tLOAD - " << currentChLoad << endl;
+								}
+							}
+						}
+					}
+					else if(j==3)
+					{
+						for(int i=0; i < cores[j]->gateSize("face$o") - 1; i++)
+						{
+							nextNode = cores[j]->getParentModule()->gate("face$o",i+1)->getNextGate()->getOwnerModule()->getIndex();
+							if(nextNode == 7)
+							{
+								for(long k=0; k<cores[0]->catCard; k++)
+								{
+									currentBitPerSec = cores[j]->numBits[i][k]/(SIMTIME_DBL(simTime())-stabilization_time);
+									currentChLoad = currentBitPerSec/cores[j]->datarate;
+									cout << "TIER 3 - Content # " << k+1 << "\tLOAD - " << currentChLoad << endl;
+								}
+							}
+						}
+					}
+				}
+			}
+
+			delete in;
+			endSimulation();
+		}
+   }
+}
+
+/*
+ * 	Check the hit rate stability of a node.
+ *
+ * 	Parameters:
+ * 		- n: node ID
+ */
+bool statistics::stable(int n)
+{
+    bool stable = false;
+    double var = 0.0;
+    double mean = 0.0;
+    double rate = caches[n]->hit * 1./ ( caches[n]->hit + caches[n]->miss );
+
+    //	Only hit rates matter.
+    if (caches[n]->hit != 0 )
+    {
+    	if((caches[n]->decision_yes + caches[n]->hit) != events[n])  // If something is changed wrt the previous sample
+    	{
+    		samples[n].push_back(rate);		// Collect a sample.
+
+    		if (samples[n].size()==window+1)
+    			samples[n].erase(samples[n].begin()); // we try to maintain constant size while inserting new elements.
+
+    		events[n] = caches[n]->decision_yes + caches[n]->hit;
+    	}
+    	// else: do not collect the sample
+    }
+    else
+    {
+    	if(caches[n]->miss == 0)      	// Inactive node  (we should state it as stable)
+    		samples[n].push_back(0);
+    	else							// Node which has experienced only miss events so far -> do not collect the sample
+    									// we will start only by the first hit.
+    		events[n] = caches[n]->decision_yes + caches[n]->hit;
+    }
+
+    if ( samples[n].size() == window )	// Calculate the variance each window samples.
+	{
+    	var = variance(samples[n]);
+    	mean = average(samples[n]);
+    	cout << "NODE # " << n << " Variance: " << var << " SIM TIME: " << simTime() << endl;
+        double cv;
+    	if (mean > 0.1)
+    		cv = cvThr;
+    	else
+    		cv = 0.1;
+    	if ( sqrt(var) <= cv * mean)
+        {
+            stabilization_time = SIMTIME_DBL(simTime());
+            stable = true;
+            cout << "NODE # " << n << " is STABLE at # " << simTime() << " with Samples:" << endl;
+            for (unsigned int i=0; i < samples[n].size(); i++)
+            	cout << samples[n][i] << " - ";
+            cout << endl;
+
+            // Set stable flag inside "base_cache"
+            caches[n]->stability = true;
+
+            // Check if it is an active node
+            if(cores[n]->interests)
+            	stable_with_traffic_nodes[n]=true;
+
+        }
+        samples[n].clear();		// Clear the collected samples.
+    }
+    return stable;
+}
+
+// Print statistics.
+void statistics::finish()
+{
+	char name[30];
+
+    uint32_t global_hit = 0;
+    uint32_t global_miss = 0;
+    uint32_t global_interests = 0;
+    uint32_t global_data      = 0;
+    double global_hit_ratio = 0;
+
+    uint32_t global_repo_load = 0;
+	long total_cost = 0;
+
+    double global_avg_distance = 0;
+    simtime_t global_avg_time = 0;
+    uint32_t global_tot_downloads = 0;
+
+    #ifdef SEVERE_DEBUG
+    unsigned int global_interests_sent = 0;
+    #endif
+
+    int active_nodes = 0;
+    for (int i = 0; i<num_nodes; i++)
+	{
+    	//TODO: do not always compute cost. Do it only when you want to evaluate the cost in your network
+		total_cost += cores[i]->repo_load * cores[i]->get_repo_price();
+
+		if (cores[i]->interests)	// Check if the considered node has received Interest packets.
+		{
+			active_nodes++;
+			global_hit  += caches[i]->hit;
+			global_miss += caches[i]->miss;
+			global_data += cores[i]->data;
+			global_interests += cores[i]->interests;
+			global_repo_load += cores[i]->repo_load;
+			global_hit_ratio += caches[i]->hit * 1./(caches[i]->hit+caches[i]->miss);
+
+			#ifdef SEVERE_DEBUG
+				if (	caches[i]->decision_yes + caches[i]->decision_no +
+						(unsigned) cores[i]->unsolicited_data
+						!=  (unsigned) cores[i]->data + cores[i]->repo_load
+				){
+					std::stringstream ermsg;
+					ermsg<<"caches["<<i<<"]->decision_yes="<<caches[i]->decision_yes<<
+						"; caches[i]->decision_no="<<caches[i]->decision_no<<
+						"; cores[i]->data="<<cores[i]->data<<
+						"; cores[i]->repo_load="<<cores[i]->repo_load<<
+						"; cores[i]->unsolicited_data="<<cores[i]->unsolicited_data<<
+						". The sum of "<< "decision_yes and decision_no must be data";
+					severe_error(__FILE__,__LINE__,ermsg.str().c_str() );
+				}
+			#endif
+		}
+    }
+
+	cout << "Num Active Nodes: " << active_nodes << endl;
+	cout << "Num Total Nodes: " << num_nodes << endl;
+
+    // Print and store global statistics
+
+    // The global_hit is the mean hit rate among all the caches.
+    sprintf (name, "p_hit");
+    //recordScalar(name,global_hit * 1./(global_hit+global_miss));
+    recordScalar(name,global_hit_ratio * 1./active_nodes);
+    //cout<<"p_hit/cache: "<<global_hit *1./(global_hit+global_miss)<<endl;
+    cout<<"p_hit/cache: "<<global_hit_ratio * 1./active_nodes<<endl;
+
+    // Mean number of received Interest packets per node.
+    sprintf ( name, "interests");
+    recordScalar(name,global_interests * 1./num_nodes);
+
+    // Mean number of received Data packets per node.
+    sprintf ( name, "data" );
+    recordScalar(name,global_data * 1./num_nodes);
+
+    vector<double> global_scheduledReq;
+    vector<double> global_validatedReq;
+    ShotNoiseContentDistribution* snmPointer;
+
+    // Statistics for popularity classes (only for Shot Noise model)
+    cModule* pSubModule = getParentModule()->getSubmodule("content_distribution");
+    if (pSubModule)
+    {
+    	snmPointer = dynamic_cast<ShotNoiseContentDistribution*>(pSubModule);
+    	if (snmPointer)
+    	{
+    		global_scheduledReq.resize(snmPointer->numOfClasses,0);
+    		global_validatedReq.resize(snmPointer->numOfClasses,0);
+    	}
+    }
+
+
+    for (int i = 0;i<num_clients;i++)
+    {
+		global_avg_distance += clients[i]->get_avg_distance();
+		global_tot_downloads += clients[i]->get_tot_downloads();
+		global_avg_time  += clients[i]->get_avg_time();
+		//<aa>
+		#ifdef SEVERE_DEBUG
+		global_interests_sent += clients[i]->get_interests_sent();
+		#endif
+		//</aa>
+
+
+		if (snmPointer)
+		{
+			for(int j=0; j<snmPointer->numOfClasses; j++)
+			{
+				global_scheduledReq[j] += clients[i]->getScheduledReq(j);
+				global_validatedReq[j] += clients[i]->getValidatedReq(j);
+			}
+		}
+	}
+
+    // Mean hit distance.
+    sprintf ( name, "hdistance");
+    recordScalar(name,global_avg_distance * 1./num_clients);
+    cout<<"Distance/client: "<<global_avg_distance * 1./num_clients<<endl;
+
+    // Mean download time.
+    sprintf ( name, "avg_time");
+    recordScalar(name,global_avg_time * 1./num_clients);
+    cout<<"Time/client: "<<global_avg_time * 1./num_clients<<endl;
+
+    // SNM statistics
+    if(snmPointer)
+    {
+    	for(int j=0; j<snmPointer->numOfClasses; j++)
+    	{
+    		sprintf(name, "Scheduled_requests_Class_%d", j+1);		// Absolute number of scheduled requests for that class.
+    		recordScalar(name, global_scheduledReq[j]);
+
+    		sprintf(name, "Scheduled_requests_perc_Class_%d", j+1);		// Percentage of scheduled requests.
+    		recordScalar(name, global_scheduledReq[j] * 1./snmPointer->totalRequests);
+
+    		sprintf(name, "Validated_requests_Class_%d", j+1);		// Absolute number of validated requests for that class.
+    		recordScalar(name, global_validatedReq[j]);
+
+    		sprintf(name, "Validated_requests_relative_perc_Class_%d", j+1);		// Relative percentage of validated requests.
+    		recordScalar(name, global_validatedReq[j] * 1./global_scheduledReq[j]);
+
+       		sprintf(name, "Validated_requests_abslute_perc_Class_%d", j+1);		// Absolute percentage of validated requests.
+        	recordScalar(name, global_validatedReq[j] * 1./snmPointer->totalRequests);
+
+    		sprintf(name, "Suppressed_requests_Class_%d", j+1);
+    		recordScalar(name, global_scheduledReq[j]-global_validatedReq[j]);
+    	}
+    }
+
+	// Total number of completed downloads (sum over all clients).
+    sprintf ( name, "downloads");
+    recordScalar(name,global_tot_downloads);
+
+    sprintf ( name, "total_cost");
+    recordScalar(name,total_cost);
+    cout<<"total_cost: "<<total_cost<<endl;
+
+
+    sprintf ( name, "total_replicas");
+    recordScalar(name,total_replicas);
+    cout<<"total_replicas: "<<total_replicas<<endl;
+
+    // It is the fraction of traffic that is satisfied by some cache inside
+    // the network, and thus does not exit the network
+    sprintf (name, "inner_hit");
+    recordScalar(name , (double) (global_tot_downloads - global_repo_load) / global_tot_downloads) ;
+
+    #ifdef SEVERE_DEBUG
+	if (global_tot_downloads == 0)
+	{
+	       	std::stringstream ermsg;
+		ermsg<<"global_tot_downloads == 0";
+		severe_error(__FILE__,__LINE__,ermsg.str().c_str() );
+	}
+
+		sprintf ( name, "interests_sent");
+		recordScalar(name,global_interests_sent);
+		cout<<"interests_sent: "<<global_interests_sent<<endl;
+
+		if (global_interests_sent != global_tot_downloads){
+			std::stringstream ermsg;
+			ermsg<<"interests_sent="<<global_interests_sent<<"; tot_downloads="<<
+				global_tot_downloads<<
+				". If **.size==1 in omnetpp.ini and all links have 0 delay, this "<<
+				" is an error. Otherwise, it is not";
+			debug_message(__FILE__,__LINE__,ermsg.str().c_str() );
+		}
+	#endif
+
+
+    //TODO per content statistics
+    //double hit_rate;
+    // for (uint32_t f = 1; f <=content_distribution::perfile_bulk; f++){
+    //     hit_rate = 0;
+    //     if(hit_per_file[f]!=0)
+    //         hit_rate = hit_per_file[f] / ( hit_per_file[f] +miss_per_file[f] );
+    //     hit_per_fileV.recordWithTimestamp(f, hit_rate);
+    //}
+
+	delete [] caches;
+	delete [] cores;
+	delete [] clients;
+}
+
+void statistics::clear_stat()
+{
+	for (int i = 0;i<num_clients;i++)
+	if (clients[i]->is_active() )
+	    clients[i]->clear_stat();
+
+    for (int i = 0;i<num_nodes;i++)
+        cores[i]->clear_stat();
+
+    for (int i = 0;i<num_nodes;i++)
+	    caches[i]->clear_stat();
+}
+
+void statistics::stability_has_been_reached(){
+	char name[30];
+	sprintf (name, "stabilization_time");
+	recordScalar(name,stabilization_time);
+	cout<<"stabilization_time: "<< stabilization_time <<endl;
+
+	clear_stat();
+}
+
+void statistics::registerIcnChannel(cChannel* icn_channel){
+	#ifdef SEVERE_DEBUG
+	if ( std::find(icn_channels.begin(), icn_channels.end(), icn_channel)
+			!=icn_channels.end()
+	){
+        std::stringstream ermsg;
+		ermsg<<"Trying to add to statistics object an icn channel already added"<<endl;
+	    severe_error(__FILE__,__LINE__,ermsg.str().c_str() );
+	}
+	#endif
+	icn_channels.push_back(icn_channel);
+}
+
+void statistics::checkStability()
+{
+	//stable_check = new cMessage("stable_check",STABLE_CHECK);
+
+	//take(stable_check);
+	clear_stat();
+	tEndFill = chrono::high_resolution_clock::now();
+	scheduleEnd = true;
+	scheduleAt(simTime() + ts, stable_check);
+}
+
+
+
+// *** In the following: FUNCTIONS related to ANALYTICAL MODEL SOLVING and other UTILITIES (like cache filling) ***
 double statistics::calculate_phit_neigh(int node_ID, int cont_ID, float **ratePrev, float **Pin, float **Phit, double *tcVect, double alphaExp, double lambdaVal, long catCard, bool* clientVect, vector<vector<map<int,int> > > &neighMat)
 {
     double num;
@@ -2355,665 +3018,4 @@ void statistics::cacheFillModel_Scalable_Approx_NRR(const char* phase)
 	delete [] p_in;
 	delete [] p_hit;
 
-}
-
-
-int statistics::numInitStages() const
-{
-	return 2;
-}
-
-/*
- * 	Function to handle timers aimed at checking the state of the caches, i.e.,
- * 	when they become full, and when their hit rate remains stable within a certain threshold.
- */
-void statistics::handleMessage(cMessage *in)
-{
-	int full = 0;
-    int stables = 0;
-    int numActiveNodes = 0;
-
-    switch (in->getKind()){
-    case FULL_CHECK:
-    	for (int i = 0; i < num_nodes;i++)
-    	{
-    		if(cores[i]->interests!=0)
-    			full += (int)caches[i]->full();
-    		else
-    			full += 1; 						// Inactive nodes are considered full for convergence purposes
-    	}
-
-        //if (full >= partial_n || simTime()>=10*8000)
-        if (full >= partial_n || simTime()>=10*3600)
-        {
-        	tEndFill = chrono::high_resolution_clock::now();
-        	auto duration = chrono::duration_cast<chrono::milliseconds>( tEndFill - tStartCold ).count();
-        	cout << "Execution time of the FILL [ms]: " << duration << endl;
-
-        	cout<<"Caches filled at time "<< simTime() <<endl;
-        	scheduleAt(simTime() + ts, stable_check);	// Schedule the 'stable' check.
-        	delete full_check;
-
-        	double phitNode;
-    		double phitTot = 0;
-    		for (int i=0; i < num_nodes; i++)
-    		{
-    			if(caches[i]->hit != 0)
-    			{
-    				phitNode = caches[i]->hit * 1./ ( caches[i]->hit + caches[i]->miss );
-    				phitTot += phitNode;
-    				cout << "Node # " << i << " pHit: " << phitNode << endl;
-    				phitNode = 0;
-    			}
-    			else
-    			{
-    				phitTot += 0;
-    			}
-    		}
-    		cout << "SIMULATION - Total MEAN HIT PROB AFTER CACHE FILL: " << phitTot * 1./(double)num_nodes << endl;
-    		clear_stat();		// Clear the statistics gathered during the transient time.
-        }
-        else
-        	scheduleAt(simTime() + ts, in);		// Reschedule a 'full' check.
-        break;
-
-    case STABLE_CHECK:
-    	for (int i = 0;i<num_nodes;i++)
-    	{
-    		if(!stable_nodes[i])
-    		{
-    			stable_nodes[i] = stable(i);
-    			stables += (int) stable_nodes[i];
-
-    		}
-    		else
-    			stables += 1;
-    	}
-
-    	if ( stables >= partial_n )
-    	{
-    		// Due to the fact that inactive nodes are considered as "stable",
-    		// a further control is needed in order to check if a representative
-    		// parte of the stable nodes (in this case half of them) effectively received traffic.
-    		// This is especially needed for downscaled TTL-based simulations,
-    		// and in particular for those cases where more simulation cycles are needed
-    		// in order to correct the input Tc values. In case the next condition is not verified,
-    		// the simulation continues with the transient state.
-
-    		int stable_with_traffic = 0;
-    		for (int i=0; i < num_nodes; i++)
-    		{
-    			if(stable_nodes[i]  &&  stable_with_traffic_nodes[i])
-    			{
-    				stable_with_traffic++;
-    			}
-    			else
-    			{
-    				stable_nodes[i] = false;
-    				stables--;
-    			}
-    		}
-    		cout << "**##**  ACTIVE NODES BTW STABLES:\t" << stable_with_traffic << endl;
-
-    		if(stable_with_traffic >= floor(partial_n/2))
-    		{
-				for (int i = 0;i<num_nodes;i++)
-				{
-					caches[i]->stability = true;
-
-					// In case of 2-LRU, signal the name cache for stability
-					DecisionPolicy* decisor = caches[i]->get_decisor();
-					Two_Lru* twoLruDecisor = dynamic_cast<Two_Lru *> (decisor);
-					if(twoLruDecisor)			// 2-LRU-LRU
-						twoLruDecisor->nc_stable = true;
-				}
-
-				for(int i=0; i<num_clients; i++)
-					clients[i]->stability = true;
-
-				cout << "*** FULL STABLE ***" << endl;
-
-				// *****  NB  *** Insert for the link failure scenario
-				//if(scheduleEnd)
-				scheduleAt(simTime() + time_steady, end);	// Schedule the end of the simulation according to the steady
-																// time after stabilization.
-				double phitNode;
-				double phitTot = 0;
-				int numActiveNodes = 0;
-				for (int i=0; i < num_nodes; i++)
-				{
-					if(cores[i]->interests != 0)
-					{
-						phitNode = caches[i]->hit * 1./ ( caches[i]->hit + caches[i]->miss );
-						phitTot += phitNode;
-						cout << "Node # " << i << " pHit: " << phitNode << endl;
-						phitNode = 0;
-						numActiveNodes++;
-
-						cores[i]->stable = true;
-
-					}
-					else
-					{
-						phitTot += 0;
-						//numActiveNodes++;
-
-						cores[i]->stable = true;
-					}
-				}
-				cout << "SIMULATION - Total MEAN HIT PROB AFTER STABILIZATION: " << phitTot * 1./(double)numActiveNodes << endl;
-
-				if(!scheduleEnd)
-					cout << "Number of Active Nodes 1: " << numActiveNodes << endl;
-				else
-					cout << "Number of Active Nodes 2: " << numActiveNodes << endl;
-				cout << "SIMULATION - Stabilization reached at: " << simTime() << endl;
-
-				tEndStable = chrono::high_resolution_clock::now();
-
-				// ** Stability time measured since the beginning
-				auto duration = chrono::duration_cast<chrono::milliseconds>( tEndStable - tStartGeneral ).count();
-				cout << "Execution time of the STABILIZATION [ms]: " << duration << endl;
-
-				stability_has_been_reached();
-
-				for (int n=0; n < num_nodes; n++)
-				{
-					events[n] = 0;
-				}
-    		}
-    		else  // Continue the simulation with the transient state (reschedule a 'stable' check)
-    			scheduleAt(simTime() + ts, in);
-    	}
-    	else {
-    		//cout << "NOT STABLE!" << endl;
-    		scheduleAt(simTime() + ts, in);		// Reschedule a 'stable' check.
-    	}
-
-    	break;
-    case END:
-    	tEndGeneral = chrono::high_resolution_clock::now();
-    	auto duration = chrono::duration_cast<chrono::milliseconds>( tEndGeneral - tStartGeneral ).count();
-    	cout << "Execution time of the SIMULATION [ms]: " << duration << endl;
-    	//delete in;
-
-    	// Dynamic evalutaion of Tc in TTL-based scenario
-    	string forwStr = caches[0]->getParentModule()->par("RS");
-		if(forwStr.compare("ttl_cache") == 0)
-		{
-			if(!dynamic_tc)
-			{
-				delete in;
-				endSimulation();
-			}
-			else  // *** DYNAMIC TC ***
-			{
-				// Compare the SUM of the actual cache sizes of each node
-				double Sum_avg_as_cur = 0.0;
-
-    	    	numActiveNodes = 0;
-
-
-    	    	for (int i=0; i < num_nodes; i++)
-    	    	{
-    	    		if(cores[i]->interests != 0)
-    	    		{
-    	    			// For the consistency check on Ck we count only those nodes that have been stated as STABLE
-    	    			// (considering partial_n) and that are active
-    	    			if(stable_nodes[i])
-    	    			{
-    	    				cout << "** Consistency Check on NODE # " << i << endl;
-    	    				numActiveNodes++;
-    	    				Sum_avg_as_cur += abs(dynamic_cast<ttl_cache*>(caches[i])->avg_as_curr - dynamic_cast<ttl_cache*>(caches[i])->target_cache); //SUM of ABS
-    	    			}
-
-   	    				if(abs(dynamic_cast<ttl_cache*>(caches[i])->target_cache - dynamic_cast<ttl_cache*>(caches[i])->avg_as_curr)/dynamic_cast<ttl_cache*>(caches[i])->target_cache < 0.1)
-   	    				{
-   	    					dynamic_cast<ttl_cache*>(caches[i])->change_tc = false;   // Stop tc changing
-   	    				}
-
-    	    		}
-    	    		else
-    	    			dynamic_cast<ttl_cache*>(caches[i])->change_tc = false;   // Do not change Tc for inactive nodes.
-    	    	}
-
-
-
-    	    	// Only active nodes count
-    	    	double Sum_target_cache = dynamic_cast<ttl_cache*>(caches[0])->target_cache * numActiveNodes;
-
-    	    	cout << "CYCLE " << sim_cycles << " -\tNUM of ACTIVE NODES among the PARTIAL_N NODES: " << numActiveNodes << endl;
-
-    	    	if(Sum_avg_as_cur/Sum_target_cache < consThr || sim_cycles > 20)
-    	    	{
-    	    		cout << " *** SIMULATION ENDED AT CYCLE:\t" << sim_cycles << endl;
-    	    		delete in;
-    	    		endSimulation();
-    	    	}
-    			else
-    			{
-    				cout << " *** CONDITION NOT VERIFIED! CONTINUE SIMULATION ***" << endl;
-    				sim_cycles++;
-
-    				for (int i=0; i < num_nodes; i++)
-    				{
-    					cout << "NODE:\t" << i << "\n\tOLD Tc = " << caches[i]->tc_node << "\n";
-    					dynamic_cast<ttl_cache*>(caches[i])->extend_sim();			// Set the new Tc
-    					cout << "\tNEW Tc = " << caches[i]->tc_node << "\n";
-    					cout << "\tOnline Avg Cache Size = " << dynamic_cast<ttl_cache*>(caches[i])->avg_as_curr << "\n";
-    				}
-
-
-    				string decision_policy = caches[0]->par("DS");
-
-    				if (decision_policy.compare("two_ttl")==0)   // Change the Tc of the name cache accordingly
-    				{
-    					for (int i=0; i < num_nodes; i++)
-    					{
-    						Two_TTL* tTTLPointer = dynamic_cast<Two_TTL *> (caches[i]->get_decisor());
-    						tTTLPointer->extend_sim();
-    					}
-    				}
-
-   					// Clear statistics of the current cycle
-   					clear_stat();
-
-   					// Reset the stable nodes
-   					for(int i=0; i<num_nodes; i++)
-   					{
-   						stable_nodes[i] = false;
-   						stable_with_traffic_nodes[i] = false;
-   					}
-
-   					scheduleAt(simTime() + ts, stable_check);  // Schedule another stability check.
-   				}
-   	    	}
-		}
-		else		// NOT TTL-based scenario. Delete msg and end simulation.
-		{
-
-			// *** Link Load Evaluation ***
-			int nextNode;
-			double currentBitPerSec;
-			double currentChLoad;
-			if(cores[0]->llEval)
-			{
-				for(int j=0; j<num_nodes; j++)
-				{
-					if(j==0)
-					{
-						for(int i=0; i < cores[j]->gateSize("face$o") - 1; i++)
-						{
-							nextNode = cores[j]->getParentModule()->gate("face$o",i+1)->getNextGate()->getOwnerModule()->getIndex();
-							if(nextNode == 1)
-							{
-								cout << "CAT CARD from CORE = " << cores[0]->catCard << endl;
-								for(long k=0; k < cores[0]->catCard; k++)
-								{
-									currentBitPerSec = cores[j]->numBits[i][k]/(SIMTIME_DBL(simTime())-stabilization_time);
-									currentChLoad = currentBitPerSec/cores[j]->datarate;
-									cout << "TIER 1 - Content # " << k+1 << "\tLOAD - " << currentChLoad << endl;
-								}
-							}
-						}
-
-					}
-					else if(j==1)
-					{
-						for(int i=0; i < cores[j]->gateSize("face$o") - 1; i++)
-						{
-							nextNode = cores[j]->getParentModule()->gate("face$o",i+1)->getNextGate()->getOwnerModule()->getIndex();
-							if(nextNode == 3)
-							{
-								for(long k=0; k<cores[0]->catCard; k++)
-								{
-									currentBitPerSec = cores[j]->numBits[i][k]/(SIMTIME_DBL(simTime())-stabilization_time);
-									currentChLoad = currentBitPerSec/cores[j]->datarate;
-									cout << "TIER 2 - Content # " << k+1 << "\tLOAD - " << currentChLoad << endl;
-								}
-							}
-						}
-					}
-					else if(j==3)
-					{
-						for(int i=0; i < cores[j]->gateSize("face$o") - 1; i++)
-						{
-							nextNode = cores[j]->getParentModule()->gate("face$o",i+1)->getNextGate()->getOwnerModule()->getIndex();
-							if(nextNode == 7)
-							{
-								for(long k=0; k<cores[0]->catCard; k++)
-								{
-									currentBitPerSec = cores[j]->numBits[i][k]/(SIMTIME_DBL(simTime())-stabilization_time);
-									currentChLoad = currentBitPerSec/cores[j]->datarate;
-									cout << "TIER 3 - Content # " << k+1 << "\tLOAD - " << currentChLoad << endl;
-								}
-							}
-						}
-					}
-				}
-			}
-
-			delete in;
-			endSimulation();
-		}
-   }
-}
-
-/*
- * 	Check the hit rate stability of a node.
- *
- * 	Parameters:
- * 		- n: node ID
- */
-bool statistics::stable(int n)
-{
-    bool stable = false;
-    double var = 0.0;
-    double mean = 0.0;
-    double rate = caches[n]->hit * 1./ ( caches[n]->hit + caches[n]->miss );
-
-    //	Only hit rates matter.
-    if (caches[n]->hit != 0 )
-    {
-    	if((caches[n]->decision_yes + caches[n]->hit) != events[n])  // If something is changed wrt the previous sample
-    	{
-    		samples[n].push_back(rate);		// Collect a sample.
-
-    		if (samples[n].size()==window+1)
-    			samples[n].erase(samples[n].begin()); // we try to maintain constant size while inserting new elements.
-
-    		events[n] = caches[n]->decision_yes + caches[n]->hit;
-    	}
-    	// else: do not collect the sample
-    }
-    else
-    {
-    	if(caches[n]->miss == 0)      	// Inactive node  (we should state it as stable)
-    		samples[n].push_back(0);
-    	else							// Node which has experienced only miss events so far -> do not collect the sample
-    									// we will start only by the first hit.
-    		events[n] = caches[n]->decision_yes + caches[n]->hit;
-    }
-
-    if ( samples[n].size() == window )	// Calculate the variance each window samples.
-	{
-    	var = variance(samples[n]);
-    	mean = average(samples[n]);
-    	cout << "NODE # " << n << " Variance: " << var << " SIM TIME: " << simTime() << endl;
-        double cv;
-    	if (mean > 0.1)
-    		cv = cvThr;
-    	else
-    		cv = 0.1;
-    	if ( sqrt(var) <= cv * mean)
-        {
-            stabilization_time = SIMTIME_DBL(simTime());
-            stable = true;
-            cout << "NODE # " << n << " is STABLE at # " << simTime() << " with Samples:" << endl;
-            for (unsigned int i=0; i < samples[n].size(); i++)
-            	cout << samples[n][i] << " - ";
-            cout << endl;
-
-            // Set stable flag inside "base_cache"
-            caches[n]->stability = true;
-
-            // Check if it is an active node
-            if(cores[n]->interests)
-            	stable_with_traffic_nodes[n]=true;
-
-        }
-        samples[n].clear();		// Clear the collected samples.
-    }
-    return stable;
-}
-
-// Print statistics.
-void statistics::finish()
-{
-	char name[30];
-
-    uint32_t global_hit = 0;
-    uint32_t global_miss = 0;
-    uint32_t global_interests = 0;
-    uint32_t global_data      = 0;
-    double global_hit_ratio = 0;
-
-    uint32_t global_repo_load = 0;
-	long total_cost = 0;
-
-    double global_avg_distance = 0;
-    simtime_t global_avg_time = 0;
-    uint32_t global_tot_downloads = 0;
-
-    #ifdef SEVERE_DEBUG
-    unsigned int global_interests_sent = 0;
-    #endif
-
-    int active_nodes = 0;
-    for (int i = 0; i<num_nodes; i++)
-	{
-    	//TODO: do not always compute cost. Do it only when you want to evaluate the cost in your network
-		total_cost += cores[i]->repo_load * cores[i]->get_repo_price();
-
-		if (cores[i]->interests)	// Check if the considered node has received Interest packets.
-		{
-			active_nodes++;
-			global_hit  += caches[i]->hit;
-			global_miss += caches[i]->miss;
-			global_data += cores[i]->data;
-			global_interests += cores[i]->interests;
-			global_repo_load += cores[i]->repo_load;
-			global_hit_ratio += caches[i]->hit * 1./(caches[i]->hit+caches[i]->miss);
-
-			#ifdef SEVERE_DEBUG
-				if (	caches[i]->decision_yes + caches[i]->decision_no +  
-						(unsigned) cores[i]->unsolicited_data
-						!=  (unsigned) cores[i]->data + cores[i]->repo_load
-				){
-					std::stringstream ermsg; 
-					ermsg<<"caches["<<i<<"]->decision_yes="<<caches[i]->decision_yes<<
-						"; caches[i]->decision_no="<<caches[i]->decision_no<<
-						"; cores[i]->data="<<cores[i]->data<<
-						"; cores[i]->repo_load="<<cores[i]->repo_load<<
-						"; cores[i]->unsolicited_data="<<cores[i]->unsolicited_data<<
-						". The sum of "<< "decision_yes and decision_no must be data";
-					severe_error(__FILE__,__LINE__,ermsg.str().c_str() );
-				}
-			#endif
-		}
-    }
-
-	cout << "Num Active Nodes: " << active_nodes << endl;
-	cout << "Num Total Nodes: " << num_nodes << endl;
-
-    // Print and store global statistics
-
-    // The global_hit is the mean hit rate among all the caches.
-    sprintf (name, "p_hit");
-    //recordScalar(name,global_hit * 1./(global_hit+global_miss));
-    recordScalar(name,global_hit_ratio * 1./active_nodes);
-    //cout<<"p_hit/cache: "<<global_hit *1./(global_hit+global_miss)<<endl;
-    cout<<"p_hit/cache: "<<global_hit_ratio * 1./active_nodes<<endl;
-
-    // Mean number of received Interest packets per node.
-    sprintf ( name, "interests");
-    recordScalar(name,global_interests * 1./num_nodes);
-
-    // Mean number of received Data packets per node.
-    sprintf ( name, "data" );
-    recordScalar(name,global_data * 1./num_nodes);
-
-    vector<double> global_scheduledReq;
-    vector<double> global_validatedReq;
-    ShotNoiseContentDistribution* snmPointer;
-
-    // Statistics for popularity classes (only for Shot Noise model)
-    cModule* pSubModule = getParentModule()->getSubmodule("content_distribution");
-    if (pSubModule)
-    {
-    	snmPointer = dynamic_cast<ShotNoiseContentDistribution*>(pSubModule);
-    	if (snmPointer)
-    	{
-    		global_scheduledReq.resize(snmPointer->numOfClasses,0);
-    		global_validatedReq.resize(snmPointer->numOfClasses,0);
-    	}
-    }
-
-
-    for (int i = 0;i<num_clients;i++)
-    {
-		global_avg_distance += clients[i]->get_avg_distance();
-		global_tot_downloads += clients[i]->get_tot_downloads();
-		global_avg_time  += clients[i]->get_avg_time();
-		//<aa>
-		#ifdef SEVERE_DEBUG
-		global_interests_sent += clients[i]->get_interests_sent();
-		#endif
-		//</aa>
-
-
-		if (snmPointer)
-		{
-			for(int j=0; j<snmPointer->numOfClasses; j++)
-			{
-				global_scheduledReq[j] += clients[i]->getScheduledReq(j);
-				global_validatedReq[j] += clients[i]->getValidatedReq(j);
-			}
-		}
-	}
-
-    // Mean hit distance.
-    sprintf ( name, "hdistance");
-    recordScalar(name,global_avg_distance * 1./num_clients);
-    cout<<"Distance/client: "<<global_avg_distance * 1./num_clients<<endl;
-
-    // Mean download time.
-    sprintf ( name, "avg_time");
-    recordScalar(name,global_avg_time * 1./num_clients);
-    cout<<"Time/client: "<<global_avg_time * 1./num_clients<<endl;
-
-    // SNM statistics
-    if(snmPointer)
-    {
-    	for(int j=0; j<snmPointer->numOfClasses; j++)
-    	{
-    		sprintf(name, "Scheduled_requests_Class_%d", j+1);		// Absolute number of scheduled requests for that class.
-    		recordScalar(name, global_scheduledReq[j]);
-
-    		sprintf(name, "Scheduled_requests_perc_Class_%d", j+1);		// Percentage of scheduled requests.
-    		recordScalar(name, global_scheduledReq[j] * 1./snmPointer->totalRequests);
-
-    		sprintf(name, "Validated_requests_Class_%d", j+1);		// Absolute number of validated requests for that class.
-    		recordScalar(name, global_validatedReq[j]);
-
-    		sprintf(name, "Validated_requests_relative_perc_Class_%d", j+1);		// Relative percentage of validated requests.
-    		recordScalar(name, global_validatedReq[j] * 1./global_scheduledReq[j]);
-
-       		sprintf(name, "Validated_requests_abslute_perc_Class_%d", j+1);		// Absolute percentage of validated requests.
-        	recordScalar(name, global_validatedReq[j] * 1./snmPointer->totalRequests);
-
-    		sprintf(name, "Suppressed_requests_Class_%d", j+1);
-    		recordScalar(name, global_scheduledReq[j]-global_validatedReq[j]);
-    	}
-    }
-
-	// Total number of completed downloads (sum over all clients).
-    sprintf ( name, "downloads");
-    recordScalar(name,global_tot_downloads);
-
-    sprintf ( name, "total_cost");
-    recordScalar(name,total_cost);
-    cout<<"total_cost: "<<total_cost<<endl;
-
-
-    sprintf ( name, "total_replicas");
-    recordScalar(name,total_replicas);
-    cout<<"total_replicas: "<<total_replicas<<endl;
-
-    // It is the fraction of traffic that is satisfied by some cache inside
-    // the network, and thus does not exit the network
-    sprintf (name, "inner_hit");
-    recordScalar(name , (double) (global_tot_downloads - global_repo_load) / global_tot_downloads) ;
-
-    #ifdef SEVERE_DEBUG
-	if (global_tot_downloads == 0)
-	{
-	       	std::stringstream ermsg;
-		ermsg<<"global_tot_downloads == 0";
-		severe_error(__FILE__,__LINE__,ermsg.str().c_str() );
-	}
-
-		sprintf ( name, "interests_sent");
-		recordScalar(name,global_interests_sent);
-		cout<<"interests_sent: "<<global_interests_sent<<endl;
-
-		if (global_interests_sent != global_tot_downloads){
-			std::stringstream ermsg; 
-			ermsg<<"interests_sent="<<global_interests_sent<<"; tot_downloads="<< 
-				global_tot_downloads<<
-				". If **.size==1 in omnetpp.ini and all links have 0 delay, this "<<
-				" is an error. Otherwise, it is not";
-			debug_message(__FILE__,__LINE__,ermsg.str().c_str() );
-		}
-	#endif
-
-    
-    //TODO per content statistics
-    //double hit_rate;
-    // for (uint32_t f = 1; f <=content_distribution::perfile_bulk; f++){
-    //     hit_rate = 0;
-    //     if(hit_per_file[f]!=0)
-    //         hit_rate = hit_per_file[f] / ( hit_per_file[f] +miss_per_file[f] );
-    //     hit_per_fileV.recordWithTimestamp(f, hit_rate);
-    //}
-
-	delete [] caches;
-	delete [] cores;
-	delete [] clients;
-}
-
-void statistics::clear_stat()
-{
-	for (int i = 0;i<num_clients;i++)
-	if (clients[i]->is_active() )
-	    clients[i]->clear_stat();
-
-    for (int i = 0;i<num_nodes;i++)
-        cores[i]->clear_stat();
-
-    for (int i = 0;i<num_nodes;i++)
-	    caches[i]->clear_stat();
-}
-
-void statistics::stability_has_been_reached(){
-	char name[30];
-	sprintf (name, "stabilization_time");
-	recordScalar(name,stabilization_time);
-	cout<<"stabilization_time: "<< stabilization_time <<endl;
-
-	clear_stat();
-}
-
-void statistics::registerIcnChannel(cChannel* icn_channel){
-	#ifdef SEVERE_DEBUG
-	if ( std::find(icn_channels.begin(), icn_channels.end(), icn_channel)
-			!=icn_channels.end()
-	){
-        std::stringstream ermsg; 
-		ermsg<<"Trying to add to statistics object an icn channel already added"<<endl;
-	    severe_error(__FILE__,__LINE__,ermsg.str().c_str() );
-	}
-	#endif
-	icn_channels.push_back(icn_channel);
-}
-
-void statistics::checkStability()
-{
-	//stable_check = new cMessage("stable_check",STABLE_CHECK);
-
-	//take(stable_check);
-	clear_stat();
-	tEndFill = chrono::high_resolution_clock::now();
-	scheduleEnd = true;
-	scheduleAt(simTime() + ts, stable_check);
 }
