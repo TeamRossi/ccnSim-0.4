@@ -1,0 +1,6 @@
+
+2:10.39 	 elapsed real time 
+130.32 	 total CPU seconds used (user mode) 
+0.01 	 total CPU seconds used by the system  on behalf of the process 
+17840 	 memory (max resident set size) [kBytes] 
+0 	 exit status

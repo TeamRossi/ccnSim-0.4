@@ -1,0 +1,4 @@
+Topo	Nodes	Clients	Repos	Alpha	Lambda	MC	RP	FS	M	C	R	Delta	M'	C'	R'	Yotta	p_hit_stab	p_hit_end	hit_dist	Mem[MB]	CPU_stab[s]	CPU_end[s]	Cycles	SimType	StartType	FillType
+
+tree	15	8	1	1	20.0	lce	ttl	spr	1e9	1e6	1e9	1e5	10000	10	10000	0.75	0.341408	0.335371	1.51822	17.42	17.53	130.32	1	TTL	cold	naive
+
