@@ -74,7 +74,7 @@ void ttl_cache::initialize()
     if (decision_policy.compare("two_ttl")==0)
     {
     	//cout << "*** TTL CACHE got the right decision policy! ***" << endl;
-    	base_cache *contStore = (base_cache *)getParentModule()->getModuleByPath("content_store");
+    	base_cache *contStore = (base_cache *)getParentModule()->getSubmodule("content_store");
     	if(contStore)
     	{
     		//cout << "*** TTL CACHE got the right pointer to the content store! ***" << endl;
