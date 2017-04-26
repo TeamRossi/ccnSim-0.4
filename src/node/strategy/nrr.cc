@@ -65,7 +65,7 @@ void nrr::initialize(){
 		if (i==getIndex()) continue;
 		//base_cache *cptr = (base_cache *)topo.getNode(i)->getModule()->getModuleByPath("content_store");
 		base_cache *cptr = (base_cache *)topo.getNode(i)->getModule()->getSubmodule("content_store");
-		if(contStore)
+		if(cptr)
 		{
 			//<aa>
 			const int_f FIB_entry = get_FIB_entry(i);
