@@ -63,11 +63,21 @@ void nrr::initialize(){
     for (int i = 0;i<topo.getNumNodes();i++)
 	{
 		if (i==getIndex()) continue;
-		base_cache *cptr = (base_cache *)topo.getNode(i)->getModule()->getModuleByPath("content_store");
-		//<aa>
-		const int_f FIB_entry = get_FIB_entry(i);
-		if (FIB_entry.len <= TTL)
-			cfib.push_back( Centry ( cptr, FIB_entry.len ) );
+		//base_cache *cptr = (base_cache *)topo.getNode(i)->getModule()->getModuleByPath("content_store");
+		base_cache *cptr = (base_cache *)topo.getNode(i)->getModule()->getSubmodule("content_store");
+		if(contStore)
+		{
+			//<aa>
+			const int_f FIB_entry = get_FIB_entry(i);
+			if (FIB_entry.len <= TTL)
+				cfib.push_back( Centry ( cptr, FIB_entry.len ) );
+		}
+		else
+		{
+			std::stringstream ermsg;
+			ermsg<<"ERROR - TTL CACHE: cannot retrieve the pointer to the content store. Please check";
+			severe_error(__FILE__,__LINE__,ermsg.str().c_str() );
+		}
     }	
     //Commented the following if block
 	//</aa>
