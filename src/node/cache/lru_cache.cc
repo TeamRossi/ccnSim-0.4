@@ -58,7 +58,8 @@ void lru_cache::finish()
 		if (decision_policy.compare("two_lru")==0)
 		{
 			//cout << "*** LRU CACHE got the right decision policy! ***" << endl;
-			base_cache *contStore = (base_cache *)getParentModule()->getModuleByRelativePath("content_store");
+			//base_cache *contStore = (base_cache *)getParentModule()->getModuleByRelativePath("content_store");
+			base_cache *contStore = (base_cache *)getParentModule()->getSubmodule("content_store");
 			if(contStore)
 			{
 				//cout << "*** LRU CACHE got the right pointer to the content store! ***" << endl;
