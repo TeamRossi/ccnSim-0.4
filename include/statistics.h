@@ -157,6 +157,6 @@ class statistics : public cSimpleModule{
 		bool dynamic_tc = true;
                 
 		double cvThr;                   // Threshold to compare the Coefficient of Variation (CV) against.
-                double consThr;                 // Consistency Check threshold; (default = 0.1)
+        double consThr;                 // Consistency Check threshold; (default = 0.1)
 };
 #endif
