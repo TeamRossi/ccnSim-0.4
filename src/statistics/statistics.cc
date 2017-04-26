@@ -221,12 +221,15 @@ void statistics::initialize(int stage)
 		cout<<endl;
 
 		// Full_check, Cold vs Hot, have a meaning only with ED-SIM (i.e., when RS != TTL)
-		//string forwStr = caches[0]->getParentModule()->par("RS");
-		
-		string forwStr = caches[0]->getParentModule()->par("RS");
-		cout << "REPLACEMENT STRATEGY:\t" << forwStr << endl;
-		if(forwStr.compare("ttl_cache") != 0)
+		string replStr = caches[0]->getParentModule()->par("RS");
+		cout << "REPLACEMENT STRATEGY:\t" << replStr << endl;
+		if(replStr.compare("ttl_cache") != 0)
 		{
+			if(downsize > 1)		// Downscaled ModelGraft simulations are allowed only with TTL caches
+			{
+				cout << "Downscaled ModelGraft simulations are allowed only with TTL caches. Please check!\n" << endl;
+				exit(1);
+			}
 			full_check = new cMessage("full_check", FULL_CHECK);
 
 			if(startMode.compare("cold") == 0)	// COLD start: simulation starts with empty caches.
@@ -480,8 +483,8 @@ void statistics::handleMessage(cMessage *in)
     	//delete in;
 
     	// Dynamic evalutaion of Tc in TTL-based scenario
-    	string forwStr = caches[0]->getParentModule()->par("RS");
-		if(forwStr.compare("ttl_cache") == 0)
+    	string replStr = caches[0]->getParentModule()->par("RS");
+		if(replStr.compare("ttl_cache") == 0)
 		{
 			if(!dynamic_tc)
 			{
