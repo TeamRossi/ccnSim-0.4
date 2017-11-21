@@ -28,7 +28,7 @@ Enjoy!
 # Getting started
 ## Installation 
 
-To install ccnSim-0.4, please follow the instructions in INSTALL.txt. 
+To install ccnSim-0.4, please follow the instructions in INSTALL.txt (or use the docker to skip this step altogether). 
 
 ## Hello, ccnSim
 
